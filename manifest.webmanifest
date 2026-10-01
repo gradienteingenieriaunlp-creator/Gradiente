@@ -2,20 +2,20 @@
   "name": "Gradiente · Ingeniería UNLP",
   "short_name": "Gradiente",
   "description": "Tu plan de estudios con correlativas, apuntes y trámites de Ingeniería UNLP.",
-  "start_url": "./#/",
-  "scope": "./",
+  "start_url": "/#/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0b1a4a",
+  "background_color": "#ffffff",
   "theme_color": "#0b1a4a",
   "lang": "es-AR",
   "icons": [
     { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "assets/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
     { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml" }
   ],
   "shortcuts": [
-    { "name": "Mi plan", "url": "./#/plan" },
-    { "name": "Recursos", "url": "./#/recursos" }
+    { "name": "Mi plan", "url": "/#/plan" },
+    { "name": "Recursos", "url": "/#/recursos" }
   ]
 }
