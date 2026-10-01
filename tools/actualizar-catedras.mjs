@@ -1,8 +1,8 @@
-// Actualiza v2/data/catedras.json con el mail de contacto y la página de cada cátedra,
+// Actualiza data/catedras.json con el mail de contacto y la página de cada cátedra,
 // tal como los publica la Facultad en https://www1.ing.unlp.edu.ar/catedras/
 //
 // Uso (desde la carpeta Gradiente, con Node 18+):
-//   node v2/tools/actualizar-catedras.mjs
+//   node tools/actualizar-catedras.mjs
 //
 // Solo toma el mail que la cátedra muestra como "Contacto:" en su página pública.
 import { writeFile } from "node:fs/promises";
@@ -47,4 +47,4 @@ for (let i = 0; i < rows.length; i += 8) {
 const today = new Date().toISOString().slice(0, 10);
 const file = new URL("../data/catedras.json", import.meta.url);
 await writeFile(file, JSON.stringify({ updated: today, source: BASE, base: BASE, c: out }));
-console.log(`Listo: ${Object.keys(out).length} códigos, ${withMail} cátedras con mail → v2/data/catedras.json`);
+console.log(`Listo: ${Object.keys(out).length} códigos, ${withMail} cátedras con mail → data/catedras.json`);

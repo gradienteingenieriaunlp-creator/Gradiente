@@ -1,6 +1,6 @@
-// Baja el calendario académico oficial de la Facultad a v2/data/fechas.json (almanaque del inicio).
+// Baja el calendario académico oficial de la Facultad a data/fechas.json (almanaque del inicio).
 // Reescribe solo "oficial"; lo que cargue Gradiente a mano en "extra" (paros, asuetos, eventos) se conserva.
-// Uso: node v2/tools/actualizar-fechas.mjs
+// Uso: node tools/actualizar-fechas.mjs
 import { readFile, writeFile } from "node:fs/promises";
 
 const URL_CAL = "https://ing.unlp.edu.ar/institucional/calendario-ano-lectivo-completo/";

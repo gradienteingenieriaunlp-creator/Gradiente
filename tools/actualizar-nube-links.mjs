@@ -1,7 +1,7 @@
-// Agrega a v2/data/nube.json el id de la carpeta de Drive de cada materia ("d"),
+// Agrega a data/nube.json el id de la carpeta de Drive de cada materia ("d"),
 // para que el buscador de la Nube lleve directo a esa carpeta.
 // Lee la carpeta pública "Parciales" de la Nube (vista embebida de Drive, sin API key).
-// Uso: node v2/tools/actualizar-nube-links.mjs
+// Uso: node tools/actualizar-nube-links.mjs
 import { readFile, writeFile } from "node:fs/promises";
 
 const ROOT = "1nqMOCWnGQf4hijaALpiovu1L5c6PvUJb"; // carpeta raíz de la Nube (config.driveUrl)

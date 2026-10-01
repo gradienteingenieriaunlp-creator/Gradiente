@@ -1,32 +1,38 @@
 {
-  "routes": [
+  "headers": [
     {
-      "src": "/(.*)",
-      "headers": {
-        "X-Content-Type-Options": "nosniff",
-        "X-Frame-Options": "DENY",
-        "Referrer-Policy": "strict-origin-when-cross-origin",
-        "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()"
-      },
-      "continue": true
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=()" }
+      ]
     },
     {
-      "src": "^/v2$",
-      "status": 308,
-      "headers": {
-        "Location": "/v2/"
-      }
+      "source": "/sw.js",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
     },
     {
-      "src": "^/(parciales|ingresantes|mapa|consultas)/?$",
-      "dest": "/index.html"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/.*",
-      "dest": "/index.html"
+      "source": "/v2/sw.js",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
     }
+  ],
+  "redirects": [
+    { "source": "/v2", "destination": "/", "permanent": true },
+    { "source": "/v2/", "destination": "/", "permanent": true },
+    { "source": "/v2/index.html", "destination": "/", "permanent": true },
+    { "source": "/parciales", "destination": "/#/recursos", "permanent": true },
+    { "source": "/parciales/", "destination": "/#/recursos", "permanent": true },
+    { "source": "/ingresantes", "destination": "/#/recursos", "permanent": true },
+    { "source": "/ingresantes/", "destination": "/#/recursos", "permanent": true },
+    { "source": "/mapa", "destination": "/#/recursos", "permanent": true },
+    { "source": "/mapa/", "destination": "/#/recursos", "permanent": true },
+    { "source": "/consultas", "destination": "/#/consultas", "permanent": true },
+    { "source": "/consultas/", "destination": "/#/consultas", "permanent": true },
+    { "source": "/mesa", "destination": "/#/mesita", "permanent": true },
+    { "source": "/mesa/", "destination": "/#/mesita", "permanent": true },
+    { "source": "/links.json", "destination": "/data/links.json", "permanent": true },
+    { "source": "/kiosco.json", "destination": "/data/kiosco.json", "permanent": true }
   ]
 }

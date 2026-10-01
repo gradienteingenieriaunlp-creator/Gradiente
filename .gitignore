@@ -1,7 +1,6 @@
 .vercel
 *.zip
-parciales/*.zip
-parciales/nube-gradiente-unificada/física II (F1305-F0305)/otros-revisar/física ii - fisicauniversitariavolumen2.pdf
-parciales/nube-gradiente-unificada/mate pi/apoyo/mate pi - carpeta ingreso 2020 - 2020 - parte 2.pdf
-parciales/nube-gradiente-unificada/mate pi/apoyo/mate pi - carpeta ingreso 2020 - 2020.pdf
-parciales/nube-gradiente-unificada/
+# material de la nube que se arma en la compu (no se sube al repo)
+parciales/
+# capturas y borradores de trabajo
+Claude outputs/
