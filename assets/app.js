@@ -91,6 +91,12 @@
     { id: "dark", theme: "dark", name: "Oscuro", sw: ["#0a0b0f", "#1d2c63", "#e11d2a", "#34d399", "#fbbf24"] },
     { id: "negro", theme: "dark", name: "Negro", sw: ["#000000", "#1b2340", "#e8202f", "#30d98a", "#ffc53d"] }
   ];
+  /* sin elección guardada se ve la de Gradiente (Marino); no se guarda, así sigue siendo "la de siempre" */
+  var DEFAULT_PAL = "marino";
+  function defaultPalette() {
+    var root = document.documentElement, p = PALETTES.filter(function (x) { return x.id === DEFAULT_PAL; })[0];
+    root.dataset.theme = p.theme; root.dataset.palette = p.id;
+  }
   function curPalette() {
     var root = document.documentElement, id = root.dataset.palette || root.dataset.theme || (isDark() ? "dark" : "light");
     return PALETTES.filter(function (p) { return p.id === id; })[0] || PALETTES[0];
@@ -956,9 +962,14 @@
   function renderNosotros() {
     var A = CFG.about || {}, story = A.story || [];
     var html = '<div class="wrap page nos">' + story.map(function (b, i) {
-      var ph = b.photo
-        ? '<img src="' + esc(b.photo) + '" alt="' + esc(b.photoAlt || "") + '" loading="' + (i ? "lazy" : "eager") + '">'
-        : '<span class="nos-ph" role="img" aria-label="' + esc(b.photoAlt || "Foto") + '">' + ic("camera") + "<small>" + esc(b.photoAlt || "Foto") + "</small></span>";
+      // photos: [{ src, alt }] = carrusel; photo suelta sigue andando
+      var pics = (b.photos || (b.photo ? [{ src: b.photo, alt: b.photoAlt }] : [])).filter(function (p) { return p && p.src; });
+      var img = function (p, j) { return '<img src="' + esc(p.src) + '" alt="' + esc(p.alt || b.photoAlt || "") + '" loading="' + (i || j ? "lazy" : "eager") + '">'; };
+      var ph = !pics.length
+        ? '<span class="nos-ph" role="img" aria-label="' + esc(b.photoAlt || "Foto") + '">' + ic("camera") + "<small>" + esc(b.photoAlt || "Foto") + "</small></span>"
+        : pics.length === 1 ? img(pics[0], 0)
+        : '<div class="nos-car" tabindex="0" aria-label="' + esc(b.title) + ': ' + pics.length + ' fotos">' + pics.map(img).join("") + "</div>" +
+          '<div class="nos-dots">' + pics.map(function (p, j) { return '<button type="button" aria-label="Foto ' + (j + 1) + '"' + (j ? "" : ' aria-current="true"') + "></button>"; }).join("") + "</div>";
       var head = i === 0
         ? '<p class="hsec-k">Quiénes somos</p><h1 class="h1 nos-t">' + esc(b.title) + "</h1>"
         : '<h2 class="nos-t">' + esc(b.title) + "</h2>";
@@ -970,6 +981,15 @@
       footer() + "</div>";
     main.innerHTML = html;
     stagger(main);
+    main.querySelectorAll(".nos-car").forEach(function (car) {
+      var dots = car.parentNode.querySelectorAll(".nos-dots button");
+      var at = function () { return Math.round(car.scrollLeft / car.clientWidth); };
+      car.addEventListener("scroll", function () {
+        var k = at();
+        dots.forEach(function (d, j) { if (j === k) d.setAttribute("aria-current", "true"); else d.removeAttribute("aria-current"); });
+      }, { passive: true });
+      dots.forEach(function (d, j) { d.addEventListener("click", function () { car.scrollTo({ left: j * car.clientWidth, behavior: "smooth" }); }); });
+    });
   }
 
   /* ---------- Instagram: las últimas publicaciones (data/instagram.json) ---------- */
@@ -2868,7 +2888,7 @@
           try { [SY_AT, SY_USER, SY_DIRTY, "gradiente.nudge"].forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
           try { localStorage.removeItem(KEY); localStorage.removeItem("gradiente.theme"); localStorage.removeItem("gradiente.palette"); localStorage.removeItem("gradiente.tip"); } catch (e) {}
           S.name = "";
-          delete document.documentElement.dataset.theme; delete document.documentElement.dataset.palette; paintThemeBtn();
+          defaultPalette(); paintThemeBtn();
           S.career = null; S.prog = {}; S.view = "tree"; S.filter = "all"; ui.query = "";
           closeSheet(); if (location.hash === "#/" || !location.hash) route(); else location.hash = "#/";
           toast("Listo: estás viendo la página como alguien nuevo.");
@@ -3117,7 +3137,7 @@
   function forgetDevice() {
     try { [KEY, PF_KEY, "gradiente.theme", "gradiente.palette", SY_AT, SY_USER, SY_DIRTY].forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
     S.career = null; S.prog = {}; S.xo = {}; S.afc = {}; S.name = ""; S.view = "tree";
-    delete document.documentElement.dataset.theme; delete document.documentElement.dataset.palette; paintThemeBtn();
+    defaultPalette(); paintThemeBtn();
     paintAvatar();
   }
   function ago(ms) {
@@ -3155,7 +3175,8 @@
     }
     var viaMail = GA.provider() === "email";
     return '<p class="pf-sec">Cuenta</p><div class="pf-rows">' +
-      '<div class="ac-row">' + ic("users") + '<span><strong>' + esc(u.email || "Tu cuenta") + '</strong><small data-sync-label>' + esc(syncLabel()) + "</small></span></div>" +
+      '<div class="ac-row">' + ic("users") + '<span><strong>' + esc(u.email || "Tu cuenta") + roleBadge() + '</strong><small data-sync-label>' + esc(syncLabel()) + "</small></span></div>" +
+      (GA.role() === "admin" ? '<button type="button" data-ac="team">' + ic("users") + "<span>Equipo<small>Quién es organizador o admin</small></span>" + ic("chev") + "</button>" : "") +
       (viaMail ? '<button type="button" data-ac="pass">' + ic("key") + "<span>Cambiar contraseña</span>" + ic("chev") + "</button>" : "") +
       '<button type="button" data-ac="out">' + ic("back") + "<span>Cerrar sesión<small>Tu plan queda guardado en tu cuenta</small></span>" + ic("chev") + "</button>" +
       helpRows() +
@@ -3178,6 +3199,7 @@
     if (a === "google") { b.disabled = true; GA.signInGoogle().catch(function (e) { b.disabled = false; toast(GA.errorText(e)); }); }
     else if (a === "mail") openAuthMail("in");
     else if (a === "pass") openNewPassword(false);
+    else if (a === "team") openTeam();
     else if (a === "out") openSignOut();
     else if (a === "del") {
       if (!ui.delStep) { ui.delStep = true; refreshSheet(); setTimeout(function () { ui.delStep = false; }, 6000); return; }
@@ -3186,6 +3208,58 @@
         forgetDevice(); closeSheet(); route(); toast("Borramos tu cuenta y los datos de este dispositivo.");
       }).catch(function (e) { b.disabled = false; toast(GA.errorText(e)); });
     }
+  }
+
+  function roleBadge() {
+    var r = GA.role();
+    return r === "admin" || r === "organizador" ? ' <em class="ac-role ac-role--' + r + '">' + (r === "admin" ? "Admin" : "Organizador") + "</em>" : "";
+  }
+
+  /* ---------- equipo: solo admins. Dar o sacar roles por mail (la base vuelve a chequear que seas admin) ---------- */
+  var tmUI = { list: null, msg: "", tone: "", busy: false };
+  function openTeam() {
+    tmUI = { list: null, msg: "", tone: "", busy: false };
+    openSheetAs("sheet--modal", teamView);
+    bindTeam(); loadTeam();
+  }
+  function loadTeam() {
+    return GA.listStaff().then(function (l) { tmUI.list = l || []; }).catch(function (e) { tmUI.list = []; tmUI.msg = GA.errorText(e); tmUI.tone = "err"; })
+      .then(function () { if ($("[data-team]", sheetBody)) refreshSheet(); });
+  }
+  function teamView() {
+    var me = (acct() || {}).email || "";
+    var rows = tmUI.list == null ? '<p class="small muted">Cargando…</p>' : !tmUI.list.length ? '<p class="small muted">Todavía no hay nadie más.</p>' :
+      '<div class="pf-rows tm-list">' + tmUI.list.map(function (p) {
+        var self = String(p.email).toLowerCase() === me.toLowerCase();
+        return '<div class="ac-row tm-row">' + ic("users") + "<span><strong>" + esc(p.name || p.email) + ' <em class="ac-role ac-role--' + esc(p.role) + '">' + (p.role === "admin" ? "Admin" : "Organizador") + "</em></strong><small>" + esc(p.email) + (self ? " · vos" : "") + "</small></span>" +
+          '<button type="button" class="linkBtn" data-tm-rm="' + esc(p.email) + '"' + (tmUI.busy ? " disabled" : "") + ">Sacar</button></div>";
+      }).join("") + "</div>";
+    return '<div class="dHead"><div><p class="dMeta">Administración</p><h2 class="h2" id="sheetTitle">Equipo</h2></div><button class="iconBtn" type="button" data-close aria-label="Cerrar">' + ic("x") + "</button></div>" +
+      '<div data-team><p class="small muted" style="margin:6px 0 14px"><b>Organizadores</b>: van a poder editar avisos y fechas desde la página. <b>Admins</b>: todo eso y además manejar el equipo. La persona tiene que haber entrado una vez con su cuenta.</p>' +
+      '<form class="ac-form" data-tm-form novalidate><label class="ac-f"><span>Mail de la cuenta</span><input name="mail" type="email" autocomplete="off" required></label>' +
+      '<label class="ac-f"><span>Rol</span><select name="role"><option value="organizador">Organizador</option><option value="admin">Admin</option></select></label>' +
+      (tmUI.msg ? '<p class="ac-msg' + (tmUI.tone ? " is-" + tmUI.tone : "") + '" role="status">' + esc(tmUI.msg) + "</p>" : "") +
+      '<button type="submit" class="btn btn--primary btn--block"' + (tmUI.busy ? " disabled" : "") + ">Dar el rol</button></form>" +
+      '<p class="pf-sec">Con rol</p>' + rows + "</div>";
+  }
+  function bindTeam() {
+    var run = function (mail, r, okMsg) {
+      tmUI.busy = true; tmUI.msg = ""; refreshSheet();
+      GA.setRole(mail, r).then(function () { tmUI.msg = okMsg; tmUI.tone = "ok"; return loadTeam(); })
+        .catch(function (e) { tmUI.msg = GA.errorText(e); tmUI.tone = "err"; })
+        .then(function () { tmUI.busy = false; if ($("[data-team]", sheetBody)) refreshSheet(); });
+    };
+    sheetBody.onclick = function (e) {
+      var rm = e.target.closest("[data-tm-rm]"); if (!rm) return;
+      run(rm.dataset.tmRm, "estudiante", "Listo, " + rm.dataset.tmRm + " ya no tiene rol.");
+    };
+    sheetBody.onsubmit = function (e) {
+      var f = e.target.closest("[data-tm-form]"); if (!f) return;
+      e.preventDefault();
+      var mail = f.mail.value.trim(), r = f.role.value;
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { tmUI.msg = "Ese mail no parece válido."; tmUI.tone = "err"; refreshSheet(); return; }
+      run(mail, r, "Listo: " + mail + " ahora es " + (r === "admin" ? "admin" : "organizador") + ".");
+    };
   }
 
   /* ---------- entrar / crear cuenta con mail ---------- */
@@ -3294,7 +3368,7 @@
   }
   GA.onChange(function (ev, u) {
     if (ev === "PASSWORD_RECOVERY") { openNewPassword(true); return; }
-    if (ev === "SIGNED_IN" && u) syncOnLogin(u);
+    if (ev === "SIGNED_IN" && u) { syncOnLogin(u); GA.loadRole().then(function () { if (sheet.classList.contains("sheet--modal") && $(".pf", sheetBody)) refreshSheet(); }); }
     if (ev === "SIGNED_IN" || ev === "SIGNED_OUT" || ev === "USER_UPDATED") { if (sheet.classList.contains("sheet--modal") && $(".pf", sheetBody)) refreshSheet(); }
   });
 

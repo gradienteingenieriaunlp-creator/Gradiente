@@ -40,6 +40,9 @@ create policy "plan: crear el propio"      on public.plan_state for insert to au
 create policy "plan: editar el propio"     on public.plan_state for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 create policy "plan: borrar el propio"     on public.plan_state for delete to authenticated using ((select auth.uid()) = user_id);
 
+-- sin sesión no se puede ni leer
+revoke all on public.profiles, public.plan_state from anon;
+
 -- ---------- al crear la cuenta: perfil con el nombre de Google (si lo hay) ----------
 create function public.handle_new_user()
 returns trigger

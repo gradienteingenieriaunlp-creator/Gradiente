@@ -2362,7 +2362,15 @@ button.resPanel-h:hover .resPanel-chev, button.resPanel-h:focus-visible .resPane
 .nos { display: grid; gap: 44px; }
 .nos-b { display: grid; gap: 18px; align-items: center; }
 .nos-fig { margin: 0; border-radius: 22px; overflow: hidden; aspect-ratio: 4 / 3; background: var(--surface-3); box-shadow: var(--shadow-2); }
+.nos-fig { position: relative; }
 .nos-fig img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.nos-car { display: flex; width: 100%; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.nos-car::-webkit-scrollbar { display: none; }
+.nos-car img { flex: 0 0 100%; scroll-snap-align: start; }
+.nos-car:focus-visible { outline: 2px solid var(--focus); outline-offset: -4px; }
+.nos-dots { position: absolute; left: 0; right: 0; bottom: 10px; display: flex; justify-content: center; gap: 6px; pointer-events: none; }
+.nos-dots button { pointer-events: auto; width: 8px; height: 8px; padding: 0; border-radius: 999px; background: rgba(255,255,255,.55); box-shadow: 0 1px 3px rgba(0,0,0,.35); transition: width .2s var(--ease), background .2s; }
+.nos-dots button[aria-current="true"] { width: 20px; background: #fff; }
 .nos-ph { width: 100%; height: 100%; display: grid; place-content: center; justify-items: center; gap: 8px; color: var(--muted);
   background: repeating-linear-gradient(135deg, transparent 0 14px, color-mix(in srgb, var(--ink) 4%, transparent) 14px 28px), var(--surface-3); }
 .nos-ph svg { width: 34px; height: 34px; opacity: .7; }
@@ -2575,11 +2583,18 @@ h2.nos-t { font-family: var(--display); font-weight: 700; font-size: clamp(30px,
 .ac-tabs button { height: 38px; border-radius: 9px; font-weight: 700; font-size: 14.5px; color: var(--muted); }
 .ac-tabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-1); }
 .ac-form { display: grid; gap: 12px; margin-top: 16px; }
+/* roles: etiqueta en el perfil y lista del equipo */
+.ac-role { display: inline-block; margin-left: 6px; padding: 2px 7px; border-radius: 999px; font-style: normal; font-size: 11px; font-weight: 800; letter-spacing: .03em; vertical-align: 2px;
+  background: color-mix(in srgb, var(--focus) 16%, transparent); color: var(--focus); }
+.ac-role--admin { background: color-mix(in srgb, var(--red) 14%, transparent); color: var(--red); }
+.tm-row > span { flex: 1; min-width: 0; }
+.tm-row small { color: var(--muted); }
+.pf-rows .tm-row .linkBtn { flex: none; width: auto; padding: 6px 4px; font-size: 13.5px; font-weight: 700; color: var(--red); }
 .ac-f { display: grid; gap: 6px; }
 .ac-f > span:first-child { font-size: 13px; font-weight: 700; color: var(--ink-2); }
 .ac-f small { font-size: 12.5px; color: var(--muted); }
-.ac-f input { width: 100%; height: 46px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 16px; }
-.ac-f input:focus { outline: none; border-color: var(--focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 16%, transparent); }
+.ac-f :is(input, select) { width: 100%; height: 46px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 16px; }
+.ac-f :is(input, select):focus { outline: none; border-color: var(--focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 16%, transparent); }
 .ac-pw { position: relative; display: block; }
 .ac-pw input { padding-right: 76px; }
 .ac-eye { position: absolute; right: 6px; top: 6px; height: 34px; padding: 0 10px; border-radius: 8px; font-size: 13px; font-weight: 700; color: var(--ink-2); }

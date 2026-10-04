@@ -281,7 +281,7 @@
           sctx.save(); sctx.globalAlpha = la * (dark ? 1 : 1 - ph); sctx.drawImage(logoW, ox - 620 * s, oy, 945 * s, 456 * s); sctx.restore();
           if (!dark && ph > 0 && logoB.complete) { sctx.save(); sctx.globalAlpha = la * ph; sctx.drawImage(logoB, ox - 620 * s, oy, 945 * s, 456 * s); sctx.restore(); }
         }
-        var oa = seg(t, T + .55, T + .85) * (1 - seg(t, T + 2.0, T + 2.3));
+        var oa = seg(t, T + .55, T + .85) * (1 - la); // al aparecer el logo, queda solo su costa (no se duplican las líneas)
         if (oa > 0) strokeOutline(sctx, ox, oy, s, oa, 12 * (1 - pc));
       }
       if (t >= T + 2.3) { finish(el); return; }
