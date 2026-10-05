@@ -7,13 +7,24 @@
   "use strict";
   var CFG = (window.GRADIENTE || {}).auth || {};
   var LIB = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js";
-  var sb = null, user = null, listeners = [], recovery = false;
+  var sb = null, user = null, listeners = [], recovery = false, role = "estudiante", roleFor = null;
 
   var G = window.GAuth = {
     enabled: !!(CFG.enabled && CFG.url && CFG.anonKey),
     ready: null,
     user: function () { return user; },
     provider: function () { return user && user.app_metadata ? user.app_metadata.provider : null; },
+    // estudiante (lo normal), organizador o admin. Lo decide la base (user_roles), no la app.
+    role: function () { return user ? role : "estudiante"; },
+    loadRole: loadRole,
+    listStaff: listStaff,
+    setRole: setRole,
+    // avisos de Notificaciones: cualquiera los lee (aunque las cuentas estén apagadas); el equipo los escribe
+    avisos: avisos,
+    saveAviso: saveAviso,
+    deleteAviso: deleteAviso,
+    uploadAvisoImage: uploadAvisoImage,
+    removeAvisoImage: removeAvisoImage,
     inRecovery: function () { return recovery; },
     onChange: function (fn) { listeners.push(fn); },
     signInGoogle: signInGoogle,
@@ -53,6 +64,7 @@
       });
       sb.auth.onAuthStateChange(function (ev, session) {
         user = session ? session.user : null;
+        if (!user || user.id !== roleFor) role = "estudiante";
         if (ev === "PASSWORD_RECOVERY") recovery = true;
         // los avisos van después de la carga inicial (getSession), en la próxima vuelta
         setTimeout(function () { emit(ev); }, 0);
@@ -61,7 +73,7 @@
     }).then(function (r) {
       user = r && r.data && r.data.session ? r.data.session.user : null;
       cleanUrl();
-      return user;
+      return loadRole().then(function () { return user; });
     }),
     // si la red está lenta, la app arranca igual y el login se suma cuando llegue
     new Promise(function (ok) { setTimeout(function () { ok(null); }, 4000); })
@@ -70,6 +82,57 @@
     G.enabled = false; cleanUrl();
     return null;
   });
+
+  /* ---------- roles: los da un admin con set_user_role; acá solo se leen ---------- */
+  function loadRole() {
+    if (!user || !sb) { role = "estudiante"; roleFor = null; return Promise.resolve(role); }
+    var id = user.id;
+    return sb.rpc("my_role").then(unwrap).then(function (r) {
+      if (user && user.id === id) { role = r || "estudiante"; roleFor = id; }
+      return role;
+    }).catch(function () { return role; });
+  }
+  function listStaff() { return need().then(function () { return sb.rpc("list_staff"); }).then(unwrap); }
+  function setRole(mail, r) {
+    return need().then(function () { return sb.rpc("set_user_role", { target_email: mail, new_role: r }); }).then(unwrap).then(function () {
+      return user && String(user.email).toLowerCase() === String(mail).trim().toLowerCase() ? loadRole() : null;
+    });
+  }
+
+  /* ---------- avisos ---------- */
+  var AV_COLS = "id,kind,title,body,url,image,starts_on,ends_on,pinned,created_at,updated_at";
+  // con sesión del equipo se ven también los programados y los vencidos; si no, una lectura pública (sin la librería)
+  function avisos() {
+    if (sb && user && role !== "estudiante") {
+      return sb.from("avisos").select(AV_COLS).order("pinned", { ascending: false }).order("starts_on", { ascending: false }).limit(60).then(unwrap);
+    }
+    if (!CFG.url || !CFG.anonKey) return Promise.resolve([]);
+    return fetch(CFG.url + "/rest/v1/avisos?select=" + AV_COLS + "&order=pinned.desc,starts_on.desc&limit=30", {
+      headers: { apikey: CFG.anonKey, Authorization: "Bearer " + CFG.anonKey }
+    }).then(function (r) { if (!r.ok) throw new Error("avisos " + r.status); return r.json(); });
+  }
+  function saveAviso(a) {
+    var row = { kind: a.kind, title: a.title, body: a.body || null, url: a.url || null, image: a.image || null, starts_on: a.starts_on, ends_on: a.ends_on || null, pinned: !!a.pinned };
+    return need().then(function () {
+      var q = a.id ? sb.from("avisos").update(row).eq("id", a.id) : sb.from("avisos").insert(row);
+      return q.select(AV_COLS).single();
+    }).then(unwrap);
+  }
+  // también borra su foto si es de las que subimos nosotros
+  function deleteAviso(a) {
+    return need().then(function () { return sb.from("avisos").delete().eq("id", a.id); }).then(unwrap).then(function () { return removeAvisoImage(a.image); });
+  }
+  function removeAvisoImage(url) {
+    var m = String(url || "").match(/\/storage\/v1\/object\/public\/avisos\/(.+)$/);
+    if (!m || !sb) return Promise.resolve();
+    return sb.storage.from("avisos").remove([decodeURIComponent(m[1])]).catch(function () {});
+  }
+  // la foto llega ya achicada (jpeg); se guarda con un nombre al azar y se usa su link público
+  function uploadAvisoImage(blob) {
+    var path = new Date().toISOString().slice(0, 7) + "/" + Math.random().toString(36).slice(2) + Date.now().toString(36) + ".jpg";
+    return need().then(function () { return sb.storage.from("avisos").upload(path, blob, { contentType: "image/jpeg", upsert: false }); }).then(unwrap)
+      .then(function () { return sb.storage.from("avisos").getPublicUrl(path).data.publicUrl; });
+  }
 
   function need() { return sb ? Promise.resolve(sb) : Promise.reject(new Error("Las cuentas no están disponibles ahora.")); }
   function unwrap(r) { if (r.error) throw r.error; return r.data; }
@@ -128,7 +191,13 @@
       [/rate limit|too many requests|security purposes/i, "Hiciste muchos intentos seguidos. Esperá un minuto y probá de nuevo."],
       [/same.*password|new password should be different/i, "La contraseña nueva tiene que ser distinta de la anterior."],
       [/network|fetch|failed to load|no cargó/i, "No hay conexión. Probá de nuevo en un rato."],
-      [/signups not allowed|signup.*disabled/i, "Por ahora no se pueden crear cuentas nuevas."]
+      [/signups not allowed|signup.*disabled/i, "Por ahora no se pueden crear cuentas nuevas."],
+      [/no hay cuenta con ese mail/i, "No hay ninguna cuenta con ese mail. Tiene que entrar una vez a la página primero."],
+      [/único admin/i, "Sos el único admin: antes de sacarte el rol, nombrá a otra persona."],
+      [/solo admins/i, "Eso lo puede hacer solo un admin."],
+      [/row-level security|violates row-level|permission denied/i, "No tenés permiso para hacer eso."],
+      [/avisos_fechas/i, "La fecha de fin tiene que ser después de la de inicio."],
+      [/payload too large|exceeded the maximum/i, "La foto es muy pesada. Probá con otra."]
     ];
     for (var i = 0; i < map.length; i++) if (map[i][0].test(m)) return map[i][1];
     return "Algo salió mal. Probá de nuevo.";

@@ -16,9 +16,10 @@ window.GRADIENTE = {
   // lo que protege los datos son las reglas RLS (supabase/migrations/001_cuentas.sql).
   // Con enabled: false la app anda como siempre, todo en el dispositivo.
   auth: {
+    // proyecto Supabase "gradiente" (org Gradiente, São Paulo). Prender cuando estén las URLs de Auth configuradas.
     enabled: false,
-    url: "",
-    anonKey: ""
+    url: "https://ccvtjvvtjxllnaakniav.supabase.co",
+    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjdnRqdnZ0anhsbG5hYWtuaWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4MjQ3ODEsImV4cCI6MjEwNjQwMDc4MX0.P4FbicAmrCIhZ_WOPyh0RygbPA0pYGP0jVNyJ3d20yU"
   },
   // mail de contacto de Gradiente (aparece en #/privacidad para pedir ver o borrar datos)
   contactMail: "gradienteingenieriaunlp@gmail.com",
@@ -74,21 +75,37 @@ window.GRADIENTE = {
       // { year: "2019", text: "Nace Gradiente en ..." },
     ],
     // Página "Quiénes somos" (#/nosotros): foto, texto, foto, texto…
-    // photo: poné la imagen en assets/ (ej. "assets/nosotros-1.jpg"). Sin photo se ve un recuadro gris de muestra.
+    // photos: imágenes en assets/nosotros/ (con 2 o más se ve un carrusel). Sin fotos se ve un recuadro gris de muestra.
     story: [
-      { title: "Somos Gradiente", photoAlt: "Estudiantes de Gradiente en la Facultad", text: [
+      { title: "Somos Gradiente", photoAlt: "Estudiantes de Gradiente en la Facultad", photos: [
+        { src: "assets/nosotros/1-apuntes.jpg", alt: "Dos compañeras con apuntes y la tabla periódica de Gradiente" },
+        { src: "assets/nosotros/1-mesita-afuera.jpg", alt: "La mesa de apuntes de Gradiente al aire libre" },
+        { src: "assets/nosotros/1-mesita-adentro.jpg", alt: "Compañeras atendiendo la mesita de Gradiente" }
+      ], text: [
         "Somos estudiantes de Ingeniería que desde el 2019 elegimos organizarnos para transformar nuestra Facultad. Somos estudiantes como vos: cursamos, rendimos, hacemos trabajos prácticos, buscamos apuntes y atravesamos las mismas dificultades que hacen que estudiar una carrera universitaria no siempre sea sencillo.",
         "Por eso, todos los días buscamos construir herramientas para que nadie se quede afuera. Desde los grupos de estudio y el acompañamiento entre compañeros, hasta conseguir materiales a precios accesibles, acercar información, defender nuestros derechos y generar nuevas herramientas que hagan más fácil transitar la carrera. Porque creemos que la permanencia también se construye así: estando presentes y organizándonos para que las dificultades de cada día no se conviertan en motivos para abandonar."
       ] },
-      { title: "Construyendo una mejor facultad", photoAlt: "La mesita de Gradiente en Electro", text: [
+      { title: "Construyendo una mejor facultad", photoAlt: "La mesita de Gradiente en Electro", photos: [
+        { src: "assets/nosotros/2-miles.jpg", alt: "Gradiente junto a Miles y Latitud" },
+        { src: "assets/nosotros/2-escalinata.jpg", alt: "Gradiente en la escalinata con la bandera de Nunca Más" },
+        { src: "assets/nosotros/2-mesa-apuntes.jpg", alt: "La mesa de apuntes de Gradiente en la Facultad" }
+      ], text: [
         "Creemos que organizarse también es mirar lo que tenemos y preguntarnos cómo podemos mejorarlo. Si una herramienta puede ser más accesible, la hacemos más accesible. Si existe una necesidad, buscamos una respuesta colectiva.",
         "Esta aplicación nace de esa idea: reunir en un solo lugar herramientas que usamos todos los días para cursar, planificar nuestra carrera y saber qué viene después. Es una forma más de aportar soluciones concretas a los problemas que atravesamos como estudiantes."
       ] },
-      { title: "Futuros profesionales", photoAlt: "Estudiantes en un laboratorio de la Facultad", text: [
+      { title: "Futuros profesionales", photoAlt: "Estudiantes en un laboratorio de la Facultad", photos: [
+        { src: "assets/nosotros/3-congreso.jpg", alt: "Gradiente en el Congreso ImpulsAR" },
+        { src: "assets/nosotros/3-laboratorio.jpg", alt: "Visita a un laboratorio industrial" },
+        { src: "assets/nosotros/3-ctibor.jpg", alt: "Visita a la fábrica de Ctibor" },
+        { src: "assets/nosotros/3-marcha.jpg", alt: "Gradiente en la marcha universitaria" }
+      ], text: [
         "Pero también creemos que nuestra formación no termina en aprobar materias. Estudiamos Ingeniería en una Universidad Pública porque entendemos que el conocimiento que construimos tiene un rol fundamental en el desarrollo de nuestro país.",
         "Defendemos una Universidad Pública que forme profesionales capaces de aportar a una industria nacional, al desarrollo productivo y a una Argentina soberana, que pueda decidir sobre sus recursos, sus capacidades y su futuro."
       ] },
-      { title: "La salida es colectiva", photoAlt: "El equipo de Gradiente", text: [
+      { title: "La salida es colectiva", photoAlt: "El equipo de Gradiente", photos: [
+        { src: "assets/nosotros/4-noche.jpg", alt: "El equipo de Gradiente de noche" },
+        { src: "assets/nosotros/4-mesa-bombo.jpg", alt: "El equipo de Gradiente con la mesa y el bombo" }
+      ], text: [
         "Hace años elegimos organizarnos porque sabemos que una Facultad mejor no se construye en soledad. Se construye entre estudiantes, poniendo en común lo que sabemos, acompañándonos cuando cuesta y pensando juntos qué Facultad queremos.",
         "Esta aplicación es una herramienta más de ese camino. Porque creemos que siempre hay algo para transformar, algo para construir y, sobre todo, que siempre lo podemos hacer mejor."
       ] }
