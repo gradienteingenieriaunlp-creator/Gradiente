@@ -19,6 +19,12 @@
     loadRole: loadRole,
     listStaff: listStaff,
     setRole: setRole,
+    // avisos de Notificaciones: cualquiera los lee (aunque las cuentas estén apagadas); el equipo los escribe
+    avisos: avisos,
+    saveAviso: saveAviso,
+    deleteAviso: deleteAviso,
+    uploadAvisoImage: uploadAvisoImage,
+    removeAvisoImage: removeAvisoImage,
     inRecovery: function () { return recovery; },
     onChange: function (fn) { listeners.push(fn); },
     signInGoogle: signInGoogle,
@@ -93,6 +99,41 @@
     });
   }
 
+  /* ---------- avisos ---------- */
+  var AV_COLS = "id,kind,title,body,url,image,starts_on,ends_on,pinned,created_at,updated_at";
+  // con sesión del equipo se ven también los programados y los vencidos; si no, una lectura pública (sin la librería)
+  function avisos() {
+    if (sb && user && role !== "estudiante") {
+      return sb.from("avisos").select(AV_COLS).order("pinned", { ascending: false }).order("starts_on", { ascending: false }).limit(60).then(unwrap);
+    }
+    if (!CFG.url || !CFG.anonKey) return Promise.resolve([]);
+    return fetch(CFG.url + "/rest/v1/avisos?select=" + AV_COLS + "&order=pinned.desc,starts_on.desc&limit=30", {
+      headers: { apikey: CFG.anonKey, Authorization: "Bearer " + CFG.anonKey }
+    }).then(function (r) { if (!r.ok) throw new Error("avisos " + r.status); return r.json(); });
+  }
+  function saveAviso(a) {
+    var row = { kind: a.kind, title: a.title, body: a.body || null, url: a.url || null, image: a.image || null, starts_on: a.starts_on, ends_on: a.ends_on || null, pinned: !!a.pinned };
+    return need().then(function () {
+      var q = a.id ? sb.from("avisos").update(row).eq("id", a.id) : sb.from("avisos").insert(row);
+      return q.select(AV_COLS).single();
+    }).then(unwrap);
+  }
+  // también borra su foto si es de las que subimos nosotros
+  function deleteAviso(a) {
+    return need().then(function () { return sb.from("avisos").delete().eq("id", a.id); }).then(unwrap).then(function () { return removeAvisoImage(a.image); });
+  }
+  function removeAvisoImage(url) {
+    var m = String(url || "").match(/\/storage\/v1\/object\/public\/avisos\/(.+)$/);
+    if (!m || !sb) return Promise.resolve();
+    return sb.storage.from("avisos").remove([decodeURIComponent(m[1])]).catch(function () {});
+  }
+  // la foto llega ya achicada (jpeg); se guarda con un nombre al azar y se usa su link público
+  function uploadAvisoImage(blob) {
+    var path = new Date().toISOString().slice(0, 7) + "/" + Math.random().toString(36).slice(2) + Date.now().toString(36) + ".jpg";
+    return need().then(function () { return sb.storage.from("avisos").upload(path, blob, { contentType: "image/jpeg", upsert: false }); }).then(unwrap)
+      .then(function () { return sb.storage.from("avisos").getPublicUrl(path).data.publicUrl; });
+  }
+
   function need() { return sb ? Promise.resolve(sb) : Promise.reject(new Error("Las cuentas no están disponibles ahora.")); }
   function unwrap(r) { if (r.error) throw r.error; return r.data; }
 
@@ -153,7 +194,10 @@
       [/signups not allowed|signup.*disabled/i, "Por ahora no se pueden crear cuentas nuevas."],
       [/no hay cuenta con ese mail/i, "No hay ninguna cuenta con ese mail. Tiene que entrar una vez a la página primero."],
       [/único admin/i, "Sos el único admin: antes de sacarte el rol, nombrá a otra persona."],
-      [/solo admins/i, "Eso lo puede hacer solo un admin."]
+      [/solo admins/i, "Eso lo puede hacer solo un admin."],
+      [/row-level security|violates row-level|permission denied/i, "No tenés permiso para hacer eso."],
+      [/avisos_fechas/i, "La fecha de fin tiene que ser después de la de inicio."],
+      [/payload too large|exceeded the maximum/i, "La foto es muy pesada. Probá con otra."]
     ];
     for (var i = 0; i < map.length; i++) if (map[i][0].test(m)) return map[i][1];
     return "Algo salió mal. Probá de nuevo.";

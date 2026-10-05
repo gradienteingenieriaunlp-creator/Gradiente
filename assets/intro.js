@@ -265,7 +265,7 @@
     (function frame(now) {
       if (done) return;
       var t = (now - t0) / 1000, T = T_END;
-      if (t < T + 2.3) { last = at(t); drawFrame(ctx, W, H, last); }
+      if (t < T + 2.45) { last = at(t); drawFrame(ctx, W, H, last); }
       // final continuo: costa → logo en el centro → título
       sctx.clearRect(0, 0, W, H);
       if (last && last.coast && hb) {
@@ -274,7 +274,8 @@
         var s2 = hb.w / 945, o2 = [hb.x + 620 * s2, hb.y];
         var pc = easeIO((t - (T + .75)) / .7), ph = easeIO((t - (T + 1.6)) / .7);
         var s = ph > 0 ? mix(s1, s2, ph) : mix(s0, s1, pc), ox = ph > 0 ? mix(o1[0], o2[0], ph) : mix(o0[0], o1[0], pc), oy = ph > 0 ? mix(o1[1], o2[1], ph) : mix(o0[1], o1[1], pc);
-        var fadeBg = 1 - seg(t, T + 1.6, T + 2.15);
+        // la página aparece cuando el logo ya casi llegó: si no, su costa roja pasa por encima del título
+        var fadeBg = 1 - seg(t, T + 2.1, T + 2.45);
         bg.style.opacity = fadeBg; cv.style.opacity = fadeBg;
         var la = seg(t, T + 1.15, T + 1.5);
         if (la > 0 && logoW.complete) {
@@ -284,7 +285,7 @@
         var oa = seg(t, T + .55, T + .85) * (1 - la); // al aparecer el logo, queda solo su costa (no se duplican las líneas)
         if (oa > 0) strokeOutline(sctx, ox, oy, s, oa, 12 * (1 - pc));
       }
-      if (t >= T + 2.3) { finish(el); return; }
+      if (t >= T + 2.5) { finish(el); return; }
       requestAnimationFrame(frame);
     })(t0);
     setTimeout(function () { finish(el); }, (T_END + 4) * 1000); // por las dudas (pestaña en segundo plano)

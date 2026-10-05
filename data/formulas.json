@@ -1,5 +1,5 @@
 {
- "_como": "Fórmulas de Herramientas > Fórmulas. f es LaTeX (se dibuja con KaTeX). Para sumar un tema: { id, name, hint, items: [{ n: nombre, f: fórmula, note: aclaración opcional }] }. hint = en qué materias se suele ver (texto libre).",
+ "_como": "Fórmulas de Herramientas > Fórmulas. f es LaTeX (se dibuja con KaTeX). Cada tema: { id, name, area, hint, materias, items: [{ n: nombre, f: fórmula, note: aclaración opcional }] }. area = uno de los id de 'areas' (los filtros de arriba). materias = códigos de planes.json donde se usa (así aparecen al filtrar por materia). hint = texto libre con las materias.",
  "topics": [
   {
    "id": "algebra",
@@ -47,6 +47,10 @@
      "n": "Binomio de Newton",
      "f": "(a + b)^n = \\sum_{k=0}^{n} \\binom{n}{k} a^{n-k} b^k"
     }
+   ],
+   "area": "mate",
+   "materias": [
+    "D1001"
    ]
   },
   {
@@ -99,6 +103,10 @@
      "n": "Polinomio de Taylor",
      "f": "f(x) \\approx \\sum_{n=0}^{N} \\frac{f^{(n)}(a)}{n!}(x - a)^n"
     }
+   ],
+   "area": "mate",
+   "materias": [
+    "F1301"
    ]
   },
   {
@@ -148,6 +156,10 @@
      "n": "Longitud de arco",
      "f": "L = \\int_a^b \\sqrt{1 + f'(x)^2} \\, dx"
     }
+   ],
+   "area": "mate",
+   "materias": [
+    "F1301"
    ]
   },
   {
@@ -181,6 +193,11 @@
      "f": "\\sum_{n=1}^{\\infty} \\frac{1}{n^p}",
      "note": "converge si p > 1"
     }
+   ],
+   "area": "mate",
+   "materias": [
+    "F1301",
+    "F1302"
    ]
   },
   {
@@ -212,6 +229,10 @@
      "n": "Raíces complejas r = α ± iβ",
      "f": "y = e^{\\alpha x}\\big(C_1 \\cos \\beta x + C_2 \\sin \\beta x\\big)"
     }
+   ],
+   "area": "mate",
+   "materias": [
+    "F1304"
    ]
   },
   {
@@ -247,6 +268,11 @@
      "n": "Distancia punto–plano",
      "f": "d = \\frac{|a x_0 + b y_0 + c z_0 + d|}{\\sqrt{a^2 + b^2 + c^2}}"
     }
+   ],
+   "area": "mate",
+   "materias": [
+    "F1302",
+    "F1304"
    ]
   },
   {
@@ -293,45 +319,118 @@
      "f": "\\iint_S \\vec F \\cdot d\\vec S = \\iiint_V \\nabla \\cdot \\vec F \\, dV",
      "note": "S es la superficie cerrada que encierra V"
     }
+   ],
+   "area": "mate",
+   "materias": [
+    "F1302"
    ]
   },
   {
-   "id": "proba",
-   "name": "Probabilidad y estadística",
-   "hint": "Probabilidades y Estadística",
+   "id": "laplace",
+   "name": "Laplace, Fourier y control",
+   "area": "mate",
+   "hint": "Matemática D · Señales · Control",
+   "materias": [
+    "F1306",
+    "E1211",
+    "E1216",
+    "E1237",
+    "E1302",
+    "A1023"
+   ],
    "items": [
     {
-     "n": "Probabilidad condicional",
-     "f": "P(A \\mid B) = \\frac{P(A \\cap B)}{P(B)}"
+     "n": "Transformada de Laplace",
+     "f": "F(s) = \\int_0^{\\infty} f(t)\\,e^{-st}\\,dt"
     },
     {
-     "n": "Teorema de Bayes",
-     "f": "P(A \\mid B) = \\frac{P(B \\mid A)\\, P(A)}{P(B)}"
+     "n": "Transformadas básicas",
+     "f": "\\mathcal{L}\\{1\\} = \\frac{1}{s} \\quad \\mathcal{L}\\{t^n\\} = \\frac{n!}{s^{n+1}} \\quad \\mathcal{L}\\{e^{at}\\} = \\frac{1}{s-a}"
     },
     {
-     "n": "Esperanza y varianza",
-     "f": "E[X] = \\sum x\\, p(x) \\qquad \\operatorname{Var}(X) = E[X^2] - E[X]^2"
+     "n": "Seno y coseno",
+     "f": "\\mathcal{L}\\{\\sin\\omega t\\} = \\frac{\\omega}{s^2+\\omega^2} \\quad \\mathcal{L}\\{\\cos\\omega t\\} = \\frac{s}{s^2+\\omega^2}"
     },
     {
-     "n": "Binomial",
-     "f": "P(X = k) = \\binom{n}{k} p^k (1 - p)^{n-k} \\qquad E = np \\quad V = np(1 - p)"
+     "n": "Derivada",
+     "f": "\\mathcal{L}\\{f'\\} = sF(s) - f(0) \\qquad \\mathcal{L}\\{f''\\} = s^2F(s) - s f(0) - f'(0)"
     },
     {
-     "n": "Poisson",
-     "f": "P(X = k) = \\frac{e^{-\\lambda} \\lambda^k}{k!} \\qquad E = V = \\lambda"
+     "n": "Desplazamientos",
+     "f": "\\mathcal{L}\\{e^{at}f(t)\\} = F(s-a) \\qquad \\mathcal{L}\\{f(t-a)\\,u(t-a)\\} = e^{-as}F(s)"
     },
     {
-     "n": "Exponencial",
-     "f": "f(x) = \\lambda e^{-\\lambda x} \\quad (x \\ge 0) \\qquad E = \\frac{1}{\\lambda}"
+     "n": "Convolución",
+     "f": "\\mathcal{L}\\{f * g\\} = F(s)\\,G(s)"
     },
     {
-     "n": "Estandarizar (normal)",
-     "f": "Z = \\frac{X - \\mu}{\\sigma}"
+     "n": "Teoremas del valor inicial y final",
+     "f": "f(0^+) = \\lim_{s\\to\\infty} sF(s) \\qquad f(\\infty) = \\lim_{s\\to 0} sF(s)"
     },
     {
-     "n": "Intervalo de confianza para la media",
-     "f": "\\bar x \\pm z_{\\alpha/2} \\frac{\\sigma}{\\sqrt{n}}",
-     "note": "σ conocido; si no, t de Student con s y n − 1 grados"
+     "n": "Serie de Fourier",
+     "f": "f(t) = \\frac{a_0}{2} + \\sum_{n=1}^{\\infty} \\left[a_n \\cos(n\\omega_0 t) + b_n \\sin(n\\omega_0 t)\\right]"
+    },
+    {
+     "n": "Coeficientes de Fourier",
+     "f": "a_n = \\frac{2}{T}\\int_0^T f(t)\\cos(n\\omega_0 t)\\,dt \\qquad b_n = \\frac{2}{T}\\int_0^T f(t)\\sin(n\\omega_0 t)\\,dt"
+    },
+    {
+     "n": "Transformada de Fourier",
+     "f": "X(\\omega) = \\int_{-\\infty}^{\\infty} x(t)\\,e^{-j\\omega t}\\,dt"
+    },
+    {
+     "n": "Lazo cerrado",
+     "f": "T(s) = \\frac{G(s)}{1 + G(s)H(s)}"
+    },
+    {
+     "n": "Sistema de segundo orden",
+     "f": "G(s) = \\frac{\\omega_n^2}{s^2 + 2\\zeta\\omega_n s + \\omega_n^2}",
+     "note": "ζ: amortiguamiento"
+    }
+   ]
+  },
+  {
+   "id": "numerico",
+   "name": "Métodos numéricos",
+   "area": "mate",
+   "hint": "Introducción a la Programación y Análisis Numérico",
+   "materias": [
+    "F1316"
+   ],
+   "items": [
+    {
+     "n": "Error relativo",
+     "f": "e_r = \\frac{|x - \\tilde x|}{|x|}"
+    },
+    {
+     "n": "Newton–Raphson",
+     "f": "x_{n+1} = x_n - \\frac{f(x_n)}{f'(x_n)}"
+    },
+    {
+     "n": "Bisección: iteraciones",
+     "f": "n \\ge \\frac{\\ln\\left((b-a)/\\varepsilon\\right)}{\\ln 2}"
+    },
+    {
+     "n": "Regla del trapecio",
+     "f": "\\int_a^b f\\,dx \\approx \\frac{h}{2}\\left[f_0 + 2\\sum_{i=1}^{n-1} f_i + f_n\\right]"
+    },
+    {
+     "n": "Simpson 1/3",
+     "f": "\\int_a^b f\\,dx \\approx \\frac{h}{3}\\left[f_0 + 4\\sum_{impar} f_i + 2\\sum_{par} f_i + f_n\\right]",
+     "note": "n par"
+    },
+    {
+     "n": "Euler explícito",
+     "f": "y_{n+1} = y_n + h\\,f(t_n, y_n)"
+    },
+    {
+     "n": "Runge–Kutta 4",
+     "f": "y_{n+1} = y_n + \\frac{h}{6}\\left(k_1 + 2k_2 + 2k_3 + k_4\\right)"
+    },
+    {
+     "n": "Diferencias finitas",
+     "f": "f'(x) \\approx \\frac{f(x+h) - f(x-h)}{2h} \\qquad f''(x) \\approx \\frac{f(x+h) - 2f(x) + f(x-h)}{h^2}"
     }
    ]
   },
@@ -380,6 +479,10 @@
      "n": "Gravitación",
      "f": "F = G \\frac{m_1 m_2}{r^2}"
     }
+   ],
+   "area": "fisica",
+   "materias": [
+    "F1303"
    ]
   },
   {
@@ -423,6 +526,10 @@
      "n": "Ley de Faraday",
      "f": "\\varepsilon = -\\frac{d \\Phi_B}{dt}"
     }
+   ],
+   "area": "fisica",
+   "materias": [
+    "F1305"
    ]
   },
   {
@@ -453,6 +560,60 @@
     {
      "n": "Entropía",
      "f": "\\Delta S = \\int \\frac{dQ_{\\text{rev}}}{T}"
+    }
+   ],
+   "area": "fisica",
+   "materias": [
+    "F1305",
+    "M1604"
+   ]
+  },
+  {
+   "id": "ondas",
+   "name": "Ondas y óptica",
+   "area": "fisica",
+   "hint": "Física",
+   "materias": [],
+   "items": [
+    {
+     "n": "Velocidad de una onda",
+     "f": "v = \\lambda\\,f = \\frac{\\omega}{k}"
+    },
+    {
+     "n": "Onda armónica",
+     "f": "y(x,t) = A\\sin(kx - \\omega t + \\varphi)"
+    },
+    {
+     "n": "Ecuación de onda",
+     "f": "\\frac{\\partial^2 y}{\\partial x^2} = \\frac{1}{v^2}\\,\\frac{\\partial^2 y}{\\partial t^2}"
+    },
+    {
+     "n": "Cuerda tensa",
+     "f": "v = \\sqrt{\\frac{T}{\\mu}}"
+    },
+    {
+     "n": "Nivel de intensidad sonora",
+     "f": "\\beta = 10\\log\\frac{I}{I_0}\\ \\text{dB}"
+    },
+    {
+     "n": "Efecto Doppler",
+     "f": "f' = f\\,\\frac{v \\pm v_o}{v \\mp v_s}"
+    },
+    {
+     "n": "Ley de Snell",
+     "f": "n_1 \\sin\\theta_1 = n_2 \\sin\\theta_2"
+    },
+    {
+     "n": "Lentes y espejos delgados",
+     "f": "\\frac{1}{f} = \\frac{1}{d_o} + \\frac{1}{d_i}"
+    },
+    {
+     "n": "Doble rendija",
+     "f": "d\\sin\\theta = m\\,\\lambda"
+    },
+    {
+     "n": "Fotón y efecto fotoeléctrico",
+     "f": "E = h f \\qquad K_{max} = h f - \\phi"
     }
    ]
   },
@@ -489,6 +650,413 @@
     {
      "n": "Ecuación de Nernst",
      "f": "E = E^\\circ - \\frac{R T}{n F} \\ln Q"
+    },
+    {
+     "n": "Ley de Hess",
+     "f": "\\Delta H_r = \\sum \\Delta H_f(\\text{prod}) - \\sum \\Delta H_f(\\text{react})"
+    },
+    {
+     "n": "Constante de equilibrio",
+     "f": "K_c = \\frac{[C]^c[D]^d}{[A]^a[B]^b}",
+     "note": "aA + bB ⇌ cC + dD"
+    },
+    {
+     "n": "Henderson–Hasselbalch",
+     "f": "pH = pK_a + \\log\\frac{[A^-]}{[HA]}"
+    },
+    {
+     "n": "Electrólisis (Faraday)",
+     "f": "m = \\frac{Q\\,M}{n\\,F} = \\frac{I\\,t\\,M}{n\\,F}"
+    },
+    {
+     "n": "Ley de Raoult",
+     "f": "P_A = x_A\\,P_A^{\\circ}"
+    },
+    {
+     "n": "Presión osmótica",
+     "f": "\\pi = M\\,R\\,T"
+    }
+   ],
+   "area": "quimica",
+   "materias": [
+    "U1901",
+    "C1104"
+   ]
+  },
+  {
+   "id": "proba",
+   "name": "Probabilidad y estadística",
+   "hint": "Probabilidades y Estadística",
+   "items": [
+    {
+     "n": "Probabilidad condicional",
+     "f": "P(A \\mid B) = \\frac{P(A \\cap B)}{P(B)}"
+    },
+    {
+     "n": "Teorema de Bayes",
+     "f": "P(A \\mid B) = \\frac{P(B \\mid A)\\, P(A)}{P(B)}"
+    },
+    {
+     "n": "Esperanza y varianza",
+     "f": "E[X] = \\sum x\\, p(x) \\qquad \\operatorname{Var}(X) = E[X^2] - E[X]^2"
+    },
+    {
+     "n": "Binomial",
+     "f": "P(X = k) = \\binom{n}{k} p^k (1 - p)^{n-k} \\qquad E = np \\quad V = np(1 - p)"
+    },
+    {
+     "n": "Poisson",
+     "f": "P(X = k) = \\frac{e^{-\\lambda} \\lambda^k}{k!} \\qquad E = V = \\lambda"
+    },
+    {
+     "n": "Exponencial",
+     "f": "f(x) = \\lambda e^{-\\lambda x} \\quad (x \\ge 0) \\qquad E = \\frac{1}{\\lambda}"
+    },
+    {
+     "n": "Estandarizar (normal)",
+     "f": "Z = \\frac{X - \\mu}{\\sigma}"
+    },
+    {
+     "n": "Intervalo de confianza para la media",
+     "f": "\\bar x \\pm z_{\\alpha/2} \\frac{\\sigma}{\\sqrt{n}}",
+     "note": "σ conocido; si no, t de Student con s y n − 1 grados"
+    },
+    {
+     "n": "Varianza y desvío muestral",
+     "f": "s^2 = \\frac{1}{n-1}\\sum_{i=1}^{n}(x_i - \\bar x)^2"
+    },
+    {
+     "n": "Covarianza y correlación",
+     "f": "\\text{Cov}(X,Y) = E[XY] - E[X]E[Y] \\qquad \\rho = \\frac{\\text{Cov}(X,Y)}{\\sigma_X\\,\\sigma_Y}"
+    },
+    {
+     "n": "Teorema central del límite",
+     "f": "\\bar X \\approx N\\!\\left(\\mu,\\ \\frac{\\sigma^2}{n}\\right)",
+     "note": "n grande"
+    },
+    {
+     "n": "Intervalo para una proporción",
+     "f": "\\hat p \\pm z_{\\alpha/2}\\sqrt{\\frac{\\hat p(1-\\hat p)}{n}}"
+    },
+    {
+     "n": "Estadístico de prueba (media)",
+     "f": "t = \\frac{\\bar x - \\mu_0}{s/\\sqrt{n}}"
+    },
+    {
+     "n": "Recta de regresión",
+     "f": "\\hat\\beta_1 = \\frac{\\sum (x_i-\\bar x)(y_i - \\bar y)}{\\sum (x_i - \\bar x)^2} \\qquad \\hat\\beta_0 = \\bar y - \\hat\\beta_1 \\bar x"
+    }
+   ],
+   "area": "estad",
+   "materias": [
+    "F1315"
+   ]
+  },
+  {
+   "id": "racional",
+   "name": "Mecánica Racional",
+   "area": "ing",
+   "hint": "Mecánica Racional",
+   "materias": [
+    "A1009",
+    "A1098"
+   ],
+   "items": [
+    {
+     "n": "Velocidad en el cuerpo rígido",
+     "f": "\\vec v_B = \\vec v_A + \\vec\\omega \\times \\vec r_{AB}"
+    },
+    {
+     "n": "Aceleración en el cuerpo rígido",
+     "f": "\\vec a_B = \\vec a_A + \\vec\\alpha \\times \\vec r_{AB} + \\vec\\omega \\times (\\vec\\omega \\times \\vec r_{AB})"
+    },
+    {
+     "n": "Movimiento relativo: velocidad",
+     "f": "\\vec v_{abs} = \\vec v_{rel} + \\vec v_{arr}",
+     "note": "arrastre: la del punto fijo a la terna móvil"
+    },
+    {
+     "n": "Movimiento relativo: aceleración",
+     "f": "\\vec a_{abs} = \\vec a_{rel} + \\vec a_{arr} + \\vec a_{cor}"
+    },
+    {
+     "n": "Aceleración de Coriolis",
+     "f": "\\vec a_{cor} = 2\\,\\vec\\Omega \\times \\vec v_{rel}"
+    },
+    {
+     "n": "Derivada en terna móvil",
+     "f": "\\left.\\frac{d\\vec A}{dt}\\right|_{\\text{fija}} = \\left.\\frac{d\\vec A}{dt}\\right|_{\\text{móvil}} + \\vec\\Omega \\times \\vec A"
+    },
+    {
+     "n": "Centro de masa",
+     "f": "\\vec r_G = \\frac{1}{M}\\sum_i m_i\\,\\vec r_i"
+    },
+    {
+     "n": "Teorema de Steiner",
+     "f": "I = I_G + M\\,d^2"
+    },
+    {
+     "n": "Momento angular (eje fijo)",
+     "f": "\\vec H_O = I_O\\,\\vec\\omega"
+    },
+    {
+     "n": "Ecuaciones del movimiento plano",
+     "f": "\\sum \\vec F = M\\,\\vec a_G \\qquad \\sum M_G = I_G\\,\\alpha"
+    },
+    {
+     "n": "Energía cinética del rígido",
+     "f": "T = \\tfrac{1}{2} M v_G^2 + \\tfrac{1}{2} I_G\\,\\omega^2"
+    },
+    {
+     "n": "Ecuaciones de Lagrange",
+     "f": "\\frac{d}{dt}\\frac{\\partial L}{\\partial \\dot q_k} - \\frac{\\partial L}{\\partial q_k} = Q_k",
+     "note": "L = T − V"
+    },
+    {
+     "n": "Trabajos virtuales",
+     "f": "\\sum_i \\vec F_i \\cdot \\delta\\vec r_i = 0",
+     "note": "equilibrio con vínculos ideales"
+    }
+   ]
+  },
+  {
+   "id": "fluidos",
+   "name": "Mecánica de los fluidos",
+   "area": "ing",
+   "hint": "Mecánica de los Fluidos · Hidráulica",
+   "materias": [
+    "A1052",
+    "A1011",
+    "A1015",
+    "H1550",
+    "H1551",
+    "H1501",
+    "H1502",
+    "A1053"
+   ],
+   "items": [
+    {
+     "n": "Presión hidrostática",
+     "f": "p = p_0 + \\rho\\,g\\,h"
+    },
+    {
+     "n": "Empuje (Arquímedes)",
+     "f": "E = \\rho_{fluido}\\,g\\,V_{sumergido}"
+    },
+    {
+     "n": "Fuerza sobre superficie plana",
+     "f": "F = \\rho\\,g\\,h_G\\,A",
+     "note": "h_G: profundidad del baricentro"
+    },
+    {
+     "n": "Continuidad",
+     "f": "Q = A_1 v_1 = A_2 v_2"
+    },
+    {
+     "n": "Bernoulli",
+     "f": "p_1 + \\tfrac{1}{2}\\rho v_1^2 + \\rho g z_1 = p_2 + \\tfrac{1}{2}\\rho v_2^2 + \\rho g z_2"
+    },
+    {
+     "n": "Bernoulli con pérdidas (en alturas)",
+     "f": "\\frac{p_1}{\\gamma} + \\frac{v_1^2}{2g} + z_1 = \\frac{p_2}{\\gamma} + \\frac{v_2^2}{2g} + z_2 + h_f"
+    },
+    {
+     "n": "Torricelli",
+     "f": "v = \\sqrt{2 g h}"
+    },
+    {
+     "n": "Número de Reynolds",
+     "f": "Re = \\frac{\\rho\\, v\\, D}{\\mu} = \\frac{v D}{\\nu}",
+     "note": "laminar en caños si Re < 2300"
+    },
+    {
+     "n": "Darcy–Weisbach",
+     "f": "h_f = f\\,\\frac{L}{D}\\,\\frac{v^2}{2g}"
+    },
+    {
+     "n": "Factor de fricción laminar",
+     "f": "f = \\frac{64}{Re}"
+    },
+    {
+     "n": "Cantidad de movimiento",
+     "f": "\\sum \\vec F = \\rho\\,Q\\,(\\vec v_2 - \\vec v_1)"
+    },
+    {
+     "n": "Manning (canales)",
+     "f": "v = \\frac{1}{n}\\,R_h^{2/3}\\,S^{1/2}",
+     "note": "R_h = área / perímetro mojado"
+    }
+   ]
+  },
+  {
+   "id": "circuitos",
+   "name": "Circuitos eléctricos",
+   "area": "ing",
+   "hint": "Electrotecnia · Análisis de Circuitos",
+   "materias": [
+    "E1001",
+    "E1204",
+    "E1206",
+    "E1282",
+    "A1010"
+   ],
+   "items": [
+    {
+     "n": "Leyes de Kirchhoff",
+     "f": "\\sum_{nodo} i = 0 \\qquad \\sum_{malla} v = 0"
+    },
+    {
+     "n": "Divisor de tensión",
+     "f": "V_2 = V\\,\\frac{R_2}{R_1 + R_2}"
+    },
+    {
+     "n": "Divisor de corriente",
+     "f": "I_1 = I\\,\\frac{R_2}{R_1 + R_2}"
+    },
+    {
+     "n": "Thévenin y Norton",
+     "f": "V_{th} = V_{ca} \\qquad R_{th} = \\frac{V_{ca}}{I_{cc}} \\qquad I_N = \\frac{V_{th}}{R_{th}}"
+    },
+    {
+     "n": "Capacitor e inductor",
+     "f": "i_C = C\\,\\frac{dv}{dt} \\qquad v_L = L\\,\\frac{di}{dt}"
+    },
+    {
+     "n": "Transitorio de primer orden",
+     "f": "x(t) = x(\\infty) + \\left[x(0) - x(\\infty)\\right] e^{-t/\\tau}",
+     "note": "τ = RC o τ = L/R"
+    },
+    {
+     "n": "Impedancias",
+     "f": "Z_R = R \\qquad Z_L = j\\omega L \\qquad Z_C = \\frac{1}{j\\omega C}"
+    },
+    {
+     "n": "Potencia compleja",
+     "f": "S = V\\,I^{*} = P + jQ \\qquad |S| = V_{ef}\\,I_{ef}"
+    },
+    {
+     "n": "Factor de potencia",
+     "f": "fp = \\cos\\varphi = \\frac{P}{|S|}"
+    },
+    {
+     "n": "Resonancia",
+     "f": "\\omega_0 = \\frac{1}{\\sqrt{L C}}"
+    },
+    {
+     "n": "Trifásica equilibrada",
+     "f": "P = \\sqrt{3}\\,V_L\\,I_L \\cos\\varphi",
+     "note": "V_L: tensión de línea"
+    },
+    {
+     "n": "Valor eficaz senoidal",
+     "f": "V_{ef} = \\frac{V_{max}}{\\sqrt{2}}"
+    }
+   ]
+  },
+  {
+   "id": "calor",
+   "name": "Transferencia de calor y termo aplicada",
+   "area": "ing",
+   "hint": "Termodinámica · Transferencia de Calor",
+   "materias": [
+    "M1604",
+    "M1673",
+    "M1614",
+    "M1607"
+   ],
+   "items": [
+    {
+     "n": "Primer principio, sistema abierto",
+     "f": "\\dot Q - \\dot W = \\dot m\\left(\\Delta h + \\frac{\\Delta v^2}{2} + g\\,\\Delta z\\right)",
+     "note": "flujo estacionario"
+    },
+    {
+     "n": "Proceso politrópico",
+     "f": "p\\,v^n = \\text{cte}"
+    },
+    {
+     "n": "Rendimiento térmico",
+     "f": "\\eta = \\frac{W_{neto}}{Q_{entra}} = 1 - \\frac{Q_{sale}}{Q_{entra}}"
+    },
+    {
+     "n": "COP de refrigeración y bomba de calor",
+     "f": "COP_R = \\frac{Q_L}{W} \\qquad COP_{BC} = \\frac{Q_H}{W}"
+    },
+    {
+     "n": "Conducción (Fourier)",
+     "f": "\\dot Q = -k\\,A\\,\\frac{dT}{dx}"
+    },
+    {
+     "n": "Pared plana",
+     "f": "\\dot Q = \\frac{T_1 - T_2}{R} \\qquad R = \\frac{L}{k A}"
+    },
+    {
+     "n": "Convección (Newton)",
+     "f": "\\dot Q = h\\,A\\,(T_s - T_\\infty)"
+    },
+    {
+     "n": "Radiación (Stefan–Boltzmann)",
+     "f": "\\dot Q = \\varepsilon\\,\\sigma\\,A\\,(T_s^4 - T_{alr}^4)",
+     "note": "σ = 5,67·10⁻⁸ W/m²K⁴"
+    },
+    {
+     "n": "Cilindro (conducción radial)",
+     "f": "R = \\frac{\\ln(r_2/r_1)}{2\\pi k L}"
+    }
+   ]
+  },
+  {
+   "id": "resistencia",
+   "name": "Resistencia de materiales",
+   "area": "ing",
+   "hint": "Materiales · Estabilidad",
+   "materias": [
+    "M1603",
+    "C1106",
+    "C1109",
+    "M1610",
+    "A1102"
+   ],
+   "items": [
+    {
+     "n": "Tensión normal",
+     "f": "\\sigma = \\frac{F}{A}"
+    },
+    {
+     "n": "Deformación",
+     "f": "\\varepsilon = \\frac{\\Delta L}{L_0}"
+    },
+    {
+     "n": "Ley de Hooke",
+     "f": "\\sigma = E\\,\\varepsilon \\qquad \\tau = G\\,\\gamma"
+    },
+    {
+     "n": "Poisson y módulo de corte",
+     "f": "\\nu = -\\frac{\\varepsilon_{trans}}{\\varepsilon_{long}} \\qquad G = \\frac{E}{2(1+\\nu)}"
+    },
+    {
+     "n": "Dilatación térmica",
+     "f": "\\Delta L = \\alpha\\,L_0\\,\\Delta T"
+    },
+    {
+     "n": "Flexión",
+     "f": "\\sigma = \\frac{M\\,y}{I}"
+    },
+    {
+     "n": "Torsión (eje circular)",
+     "f": "\\tau = \\frac{T\\,r}{J} \\qquad \\theta = \\frac{T L}{G J}"
+    },
+    {
+     "n": "Inercia de un rectángulo y un círculo",
+     "f": "I_{\\text{rect}} = \\frac{b\\,h^3}{12} \\qquad I_{\\text{círc}} = \\frac{\\pi d^4}{64}"
+    },
+    {
+     "n": "Pandeo (Euler)",
+     "f": "P_{cr} = \\frac{\\pi^2 E I}{(K L)^2}"
+    },
+    {
+     "n": "Tensiones principales",
+     "f": "\\sigma_{1,2} = \\frac{\\sigma_x + \\sigma_y}{2} \\pm \\sqrt{\\left(\\frac{\\sigma_x - \\sigma_y}{2}\\right)^2 + \\tau_{xy}^2}"
     }
    ]
   },
@@ -529,7 +1097,41 @@
      "n": "Planck y Boltzmann",
      "f": "h = 6{,}626 \\times 10^{-34} \\ \\text{J\\,s} \\qquad k_B = 1{,}381 \\times 10^{-23} \\ \\text{J/K}"
     }
-   ]
+   ],
+   "area": "const",
+   "materias": []
+  }
+ ],
+ "areas": [
+  {
+   "id": "mate",
+   "name": "Matemática",
+   "icon": "sigma"
+  },
+  {
+   "id": "fisica",
+   "name": "Física",
+   "icon": "atom"
+  },
+  {
+   "id": "quimica",
+   "name": "Química",
+   "icon": "flask"
+  },
+  {
+   "id": "estad",
+   "name": "Estadística",
+   "icon": "plan"
+  },
+  {
+   "id": "ing",
+   "name": "Ingeniería",
+   "icon": "building"
+  },
+  {
+   "id": "const",
+   "name": "Constantes",
+   "icon": "key"
   }
  ]
 }
