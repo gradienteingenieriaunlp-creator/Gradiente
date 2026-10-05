@@ -3352,38 +3352,50 @@
   function pfField(id, label, val, attrs) {
     return '<label class="pf-field"><span>' + label + '</span><input data-pf-f="' + id + '" value="' + esc(val || "") + '" ' + (attrs || "") + "></label>";
   }
+  /* perfil tipo credencial: arriba la tarjeta (foto, nombre, rol y avance), abajo pestañas Cuenta / Tus datos / Ajustes */
+  function pfTabs() { return GA.enabled ? [["cuenta", "Cuenta"], ["datos", "Tus datos"], ["ajustes", "Ajustes"]] : [["datos", "Tus datos"], ["ajustes", "Ajustes"]]; }
   function profileView() {
-    var p = profile(), c = career(), u = acct(), ph = photoUrl();
-    var h = '<div class="pf2"><header class="pf2-top">' +
-      '<label class="pf2-ph" title="Cambiar foto"><span class="avatar pf2-av">' + avatarHtml(true) + '</span><span class="pf2-cam">' + ic("camera") + '</span><input type="file" accept="image/*" data-pf-photo hidden></label>' +
-      '<div class="pf2-id"><label class="sr" for="pfName">Tu nombre</label><input id="pfName" class="pf2-name" data-pf-name value="' + esc(S.name || "") + '" placeholder="Tu nombre" autocomplete="given-name" maxlength="40">' +
-      '<p class="pf2-sub" id="sheetTitle">' + (u ? "<span>" + esc(u.email || "") + "</span>" + roleBadge() : "Estudiante · Ingeniería UNLP") + "</p>" +
-      (p.photo ? '<button type="button" class="pf2-mini" data-pf="nophoto">Quitar foto</button>' : "") + "</div>" +
-      '<button class="iconBtn iconBtn--sm" type="button" data-close aria-label="Cerrar">' + ic("x") + "</button></header>";
-
+    var p = profile(), c = career(), u = acct(), tabs = pfTabs();
+    if (!tabs.some(function (t) { return t[0] === ui.pfTab; })) ui.pfTab = tabs[0][0];
+    var r = u && GA.role ? GA.role() : "", rl = r === "admin" ? "Admin" : r === "organizador" ? "Organizador" : u ? "Estudiante" : "";
+    var h = '<div class="pf3"><section class="pf3-card"><div class="pf3-top"><span class="pf3-k">Gradiente · Ingeniería UNLP</span>' +
+      '<button class="iconBtn iconBtn--sm pf3-x" type="button" data-close aria-label="Cerrar">' + ic("x") + "</button></div>" +
+      '<div class="pf3-id"><label class="pf3-ph" title="Cambiar foto"><span class="avatar pf3-av">' + avatarHtml(true) + '</span><span class="pf2-cam">' + ic("camera") + '</span><input type="file" accept="image/*" data-pf-photo hidden></label>' +
+      '<div class="pf3-who"><h2 class="pf3-name" id="sheetTitle">' + esc(S.name || "Tu perfil") + "</h2>" +
+      '<p class="pf3-mail">' + esc(u ? u.email || "" : "Estudiante · Ingeniería UNLP") + "</p>" + (rl ? '<span class="pf3-role pf3-role--' + (r || "estudiante") + '">' + rl + "</span>" : "") + "</div></div>";
     if (c) {
-      var s = summary(c);
-      h += '<a class="pf2-car" href="#/plan" data-close><span class="pf2-car-t"><small>Tu carrera · Plan ' + esc(c.plan) + "</small><strong>" + esc(c.short) + "</strong>" +
-        '<span class="pf2-bar"><i class="d" style="width:' + s.pct + '%"></i><i class="r" style="width:' + Math.max(0, s.pctR - s.pct) + '%"></i></span>' +
-        "<em>" + s.a + " aprobadas · " + s.r + " " + (s.r === 1 ? "regular" : "regulares") + " · promedio " + fmtAvg(s.avg) + "</em></span>" +
-        '<b class="pf2-pct">' + s.pct + "<small>%</small></b>" + ic("chev", "pf2-go") + "</a>";
+      var s = summary(c), t = s.total || 1, w = function (n) { return (n / t * 100).toFixed(2) + "%"; };
+      h += '<a class="pf3-car" href="#/plan" data-close><span class="pf3-car-h"><span><strong>' + esc(c.short) + "</strong><small>Plan " + esc(c.plan) + " · promedio " + fmtAvg(s.avg) + "</small></span>" +
+        '<b class="pf3-pct">' + s.pct + "<small>%</small></b></span>" +
+        '<span class="pf3-bar" role="img" aria-label="' + s.a + " aprobadas, " + s.r + " regulares, " + s.c + ' cursando"><i class="d" style="width:' + w(s.a) + '"></i><i class="r" style="width:' + w(s.r) + '"></i><i class="c" style="width:' + w(s.c) + '"></i></span>' +
+        '<span class="pf3-lg"><span><i class="d"></i><b>' + s.a + "</b> aprobadas</span><span><i class=\"r\"></i><b>" + s.r + "</b> " + (s.r === 1 ? "regular" : "regulares") + '</span><span><i class="c"></i><b>' + s.c + "</b> cursando</span></span></a>";
     } else {
-      h += '<button type="button" class="pf2-car pf2-car--new" data-pf="onboard"><span class="pf2-car-t"><small>Tu carrera</small><strong>Elegí tu carrera</strong><em>Te mostramos qué podés cursar y qué finales rendir.</em></span>' + ic("chev", "pf2-go") + "</button>";
+      h += '<button type="button" class="pf3-car pf3-car--new" data-pf="onboard"><span class="pf3-car-h"><span><strong>Elegí tu carrera</strong><small>Te mostramos qué podés cursar y qué finales rendir.</small></span>' + ic("chev") + "</span></button>";
     }
-
-    h += accountHtml();
-    h += '<p class="pf-sec">Tus datos</p><div class="pf2-fields">' +
-      pfField("legajo", "N° de alumno", p.legajo, 'inputmode="numeric" placeholder="12345/6" maxlength="12"') +
-      pfField("dni", "DNI", p.dni, 'inputmode="numeric" placeholder="40123456" maxlength="10"') +
-      pfField("mail", "Mail", p.mail, 'type="email" placeholder="vos@mail.com" autocomplete="email"') + "</div>" +
-      '<p class="pf-note">' + ic("lock") + esc(dataNote()) + "</p>";
-
-    var cur = curPalette();
-    h += '<p class="pf-sec">Más</p><div class="pf2-list">' +
-      '<button type="button" data-pf="colors">' + palDots(cur) + "<span>Paletas<small>" + esc(cur.name) + "</small></span>" + ic("chev") + "</button>" +
-      (c && !u ? '<button type="button" data-pf="share">' + ic("share") + "<span>Pasar a otro dispositivo<small>Un link con tu plan</small></span>" + ic("chev") + "</button>" : "") +
-      helpRows() + "</div></div>";
-    return h;
+    h += "</section>";
+    h += '<div class="pf3-tabs" role="tablist">' + tabs.map(function (t) { return '<button type="button" role="tab" data-pf-tab="' + t[0] + '" aria-selected="' + (ui.pfTab === t[0]) + '">' + t[1] + "</button>"; }).join("") + "</div>";
+    h += '<div class="pf3-pane">';
+    if (ui.pfTab === "cuenta") h += accountHtml();
+    else if (ui.pfTab === "datos") {
+      h += '<div class="pf3-fields">' + pfField("name", "Nombre", S.name, 'data-pf-name autocomplete="given-name" maxlength="40" placeholder="Tu nombre"') +
+        pfField("dni", "DNI", p.dni, 'inputmode="numeric" placeholder="40123456" maxlength="10"') +
+        pfField("mail", "Mail", p.mail, 'type="email" placeholder="vos@mail.com" autocomplete="email"') +
+        pfField("legajo", "Legajo", p.legajo, 'inputmode="numeric" placeholder="12345/6" maxlength="12"') + "</div>";
+      if (u) {
+        var viaG = GA.provider() !== "email";
+        h += '<div class="pf3-conn">' + (viaG ? '<span class="pf3-conn-ic">' + googleIcon() + "</span>" : '<span class="pf3-conn-ic is-mail">' + ic("mail") + "</span>") +
+          "<span><b>" + (viaG ? "Entrás con Google" : "Entrás con tu mail") + "</b><small>Conectada a " + esc(u.email || "") + '</small></span><em>Conectada</em></div>';
+      }
+      if (p.photo) h += '<button type="button" class="pf2-mini pf3-nophoto" data-pf="nophoto">Quitar foto</button>';
+      h += '<p class="pf-note">' + ic("lock") + esc(dataNote()) + "</p>";
+    } else {
+      var cur = curPalette();
+      h += '<div class="pf2-list">' +
+        '<button type="button" data-pf="colors">' + palDots(cur) + "<span>Paletas<small>" + esc(cur.name) + "</small></span>" + ic("chev") + "</button>" +
+        (c && !u ? '<button type="button" data-pf="share">' + ic("share") + "<span>Pasar a otro dispositivo<small>Un link con tu plan</small></span>" + ic("chev") + "</button>" : "") +
+        helpRows() + "</div>";
+    }
+    return h + "</div></div>";
   }
   // foto: recorte cuadrado de 192px para que pese poco
   function loadPhoto(file) {
@@ -3407,6 +3419,7 @@
     Promise.all([ensurePlans()]).then(function () {
       openSheetAs("sheet--modal", profileView);
       sheetBody.onclick = function (e) {
+        var tb = e.target.closest("[data-pf-tab]"); if (tb) { ui.pfTab = tb.dataset.pfTab; refreshSheet(); return; }
         var pal = e.target.closest("[data-pal]"); if (pal) { pickPalette(pal.dataset.pal); return; }
         var ac = e.target.closest("[data-ac]"); if (ac) { onAccountClick(ac); return; }
         var b = e.target.closest("[data-pf]"); if (!b) return;
@@ -3420,7 +3433,7 @@
       };
       sheetBody.oninput = function (e) {
         var t = e.target;
-        if (t.hasAttribute("data-pf-name")) { S.name = t.value.trim(); save(); pfDirty = true; }
+        if (t.hasAttribute("data-pf-name")) { S.name = t.value.trim(); save(); pfDirty = true; var nm = $(".pf3-name", sheetBody); if (nm) nm.textContent = S.name || "Tu perfil"; }
         else if (t.dataset.pfF) { var p = profile(); p[t.dataset.pfF] = t.value.trim(); saveProfile(p); }
       };
       sheetBody.onchange = function (e) { if (e.target.hasAttribute("data-pf-photo")) loadPhoto(e.target.files[0]); };
@@ -3576,6 +3589,7 @@
     }
     var viaMail = GA.provider() === "email";
     return '<p class="pf-sec">Tu cuenta <span class="pf2-sync" data-sync-label>' + esc(syncLabel()) + "</span></p><div class=\"pf2-list\">" +
+      (isStaff() ? '<button type="button" class="pf3-new" data-ac="aviso">' + ic("plus") + "<span>Cargar un aviso<small>Sale en Notificaciones con la marca de Gradiente</small></span>" + ic("chev") + "</button>" : "") +
       (GA.role() === "admin" ? '<button type="button" data-ac="team">' + ic("users") + "<span>Equipo<small>Organizadores y admins</small></span>" + ic("chev") + "</button>" : "") +
       (viaMail ? '<button type="button" data-ac="pass">' + ic("key") + "<span>Cambiar contraseña</span>" + ic("chev") + "</button>" : "") +
       '<button type="button" data-ac="out">' + ic("back") + "<span>Cerrar sesión</span>" + ic("chev") + "</button>" +
@@ -3599,6 +3613,7 @@
     else if (a === "mail") openAuthMail("in");
     else if (a === "pass") openNewPassword(false);
     else if (a === "team") openTeam();
+    else if (a === "aviso") openAvisoForm(null);
     else if (a === "out") openSignOut();
     else if (a === "del") {
       if (!ui.delStep) { ui.delStep = true; refreshSheet(); setTimeout(function () { ui.delStep = false; }, 6000); return; }
@@ -3639,8 +3654,9 @@
     var group = function (title, list, cls) { return list.length ? '<div class="tm2-g"><p class="tm2-gk ' + cls + '">' + title + " <b>" + list.length + "</b></p>" + list.map(person).join("") + "</div>" : ""; };
     var body = tmUI.list == null ? '<p class="tm-empty">Cargando…</p>' : !L.length ? '<p class="tm-empty">Todavía no hay nadie más.</p>' : group("Admins", adm, "is-adm") + group("Organizadores", org, "is-org");
     return mHead("Equipo", "Administración", "users") +
-      '<div data-team><div class="tm2-hero"><div class="tm2-stack">' + L.slice(0, 5).map(av).join("") + '</div><div class="tm2-n"><span><b>' + adm.length + "</b>admin" + (adm.length === 1 ? "" : "s") + "</span><span><b>" + org.length + "</b>organizador" + (org.length === 1 ? "" : "es") + "</span></div>" +
-      '<p>Los organizadores cargan avisos y fechas. Los admins, además, manejan el equipo.</p></div>' +
+      '<div data-team><div class="tm2-hero"><p class="tm2-hk">Tu equipo</p><div class="tm2-stats">' +
+      '<div class="is-adm"><b>' + adm.length + "</b><span>" + (adm.length === 1 ? "Admin" : "Admins") + "</span><small>Cargan avisos y manejan el equipo</small></div>" +
+      '<div class="is-org"><b>' + org.length + "</b><span>" + (org.length === 1 ? "Organizador" : "Organizadores") + "</span><small>Cargan avisos y fechas</small></div></div></div>" +
       '<form class="tm2-add" data-tm-form novalidate><label class="sr" for="tmMail">Mail de la cuenta</label><input id="tmMail" name="mail" type="email" autocomplete="off" placeholder="mail@de-la-cuenta.com" required>' +
       '<label class="tm2-role"><span class="sr">Rol</span><select name="role"><option value="organizador">Organizador</option><option value="admin">Admin</option></select>' + ic("chev") + "</label>" +
       '<button type="submit" class="btn btn--primary btn--sm"' + (tmUI.busy ? " disabled" : "") + ">" + ic("plus") + "<span>Sumar</span></button></form>" +
