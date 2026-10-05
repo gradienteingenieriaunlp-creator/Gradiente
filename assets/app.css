@@ -92,8 +92,8 @@ body {
   padding-bottom: calc(var(--tabbar-h) + var(--safe-b) + 12px);
 }
 /* los svg de KaTeX (flechas de vector, raíces largas) se dibujan con sus propias medidas */
-img, svg:not(.katex svg) { display: block; max-width: 100%; }
-svg:not(.katex svg) { width: 1em; height: 1em; flex: none; }
+img, svg:where(:not(.katex svg)) { display: block; max-width: 100%; }
+svg:where(:not(.katex svg)) { width: 1em; height: 1em; flex: none; }
 a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; background: none; border: 0; padding: 0; }
@@ -3105,7 +3105,7 @@ h2.nos-t { font-family: var(--display); font-weight: 700; font-size: clamp(30px,
 
 /* pomodoro · reloj de tarjetitas (cada dígito cae como en los relojes viejos, al ritmo del tic tac) */
 .pomo-time { gap: 8px; }
-.flip { display: flex; align-items: center; gap: .07em; font-size: 46px; font-family: var(--display); font-weight: 800; color: var(--ink); }
+.flip { display: flex; align-items: center; gap: .07em; font-size: clamp(50px, 15vw, 60px); font-family: var(--display); font-weight: 800; color: var(--ink); }
 .fl { position: relative; width: .74em; height: 1.12em; perspective: 3em; }
 .fl > span { position: absolute; left: 0; right: 0; height: 50%; overflow: hidden; background: color-mix(in srgb, var(--ink) 9%, var(--surface)); }
 .fl-u, .fl-fu { top: 0; border-radius: .14em .14em 0 0; }
@@ -3181,5 +3181,6 @@ h2.nos-t { font-family: var(--display); font-weight: 700; font-size: clamp(30px,
   border: 1px dashed color-mix(in srgb, var(--ink) 20%, transparent); color: var(--ink-2); }
 .fMat > svg { width: 15px; height: 15px; flex: none; }
 .fMat select { flex: 1; min-width: 0; height: 100%; border: 0; background: transparent; color: inherit; font: inherit; font-size: 13.5px; font-weight: 600; outline: none; cursor: pointer; }
-.fMat select option { color: initial; }
+.fMat select { color-scheme: inherit; }
+.fMat select option { background: var(--surface); color: var(--ink); }
 .fMat.is-on { border-style: solid; border-color: var(--accent); color: var(--ink); background: color-mix(in srgb, var(--accent) 10%, transparent); }
