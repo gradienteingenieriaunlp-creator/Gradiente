@@ -3654,9 +3654,7 @@
     var group = function (title, list, cls) { return list.length ? '<div class="tm2-g"><p class="tm2-gk ' + cls + '">' + title + " <b>" + list.length + "</b></p>" + list.map(person).join("") + "</div>" : ""; };
     var body = tmUI.list == null ? '<p class="tm-empty">Cargando…</p>' : !L.length ? '<p class="tm-empty">Todavía no hay nadie más.</p>' : group("Admins", adm, "is-adm") + group("Organizadores", org, "is-org");
     return mHead("Equipo", "Administración", "users") +
-      '<div data-team><div class="tm2-hero"><p class="tm2-hk">Tu equipo</p><div class="tm2-stats">' +
-      '<div class="is-adm"><b>' + adm.length + "</b><span>" + (adm.length === 1 ? "Admin" : "Admins") + "</span><small>Cargan avisos y manejan el equipo</small></div>" +
-      '<div class="is-org"><b>' + org.length + "</b><span>" + (org.length === 1 ? "Organizador" : "Organizadores") + "</span><small>Cargan avisos y fechas</small></div></div></div>" +
+      '<div data-team>' +
       '<form class="tm2-add" data-tm-form novalidate><label class="sr" for="tmMail">Mail de la cuenta</label><input id="tmMail" name="mail" type="email" autocomplete="off" placeholder="mail@de-la-cuenta.com" required>' +
       '<label class="tm2-role"><span class="sr">Rol</span><select name="role"><option value="organizador">Organizador</option><option value="admin">Admin</option></select>' + ic("chev") + "</label>" +
       '<button type="submit" class="btn btn--primary btn--sm"' + (tmUI.busy ? " disabled" : "") + ">" + ic("plus") + "<span>Sumar</span></button></form>" +
