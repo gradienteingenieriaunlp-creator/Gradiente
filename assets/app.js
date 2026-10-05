@@ -3626,23 +3626,26 @@
       .then(function () { if ($("[data-team]", sheetBody)) refreshSheet(); });
   }
   function teamView() {
-    var me = (acct() || {}).email || "";
-    var n = tmUI.list ? tmUI.list.length : 0;
-    var rows = tmUI.list == null ? '<p class="tm-empty">Cargando…</p>' : !n ? '<p class="tm-empty">Todavía no hay nadie más.</p>' :
-      '<div class="tm-list2">' + tmUI.list.map(function (p) {
-        var self = String(p.email).toLowerCase() === me.toLowerCase(), nm = p.name || p.email;
-        return '<div class="tm-row tm-row--' + esc(p.role) + '"><span class="tm-av">' + esc(String(nm).trim().charAt(0).toUpperCase()) + "</span><span><strong>" + esc(nm) + (self ? " <small>(vos)</small>" : "") + "</strong><small>" + esc(p.email) + "</small></span>" +
-          '<em class="ac-role ac-role--' + esc(p.role) + '">' + (p.role === "admin" ? "Admin" : "Organizador") + "</em>" +
-          (self ? "" : '<button type="button" class="tm-rm" data-tm-rm="' + esc(p.email) + '" aria-label="Sacarle el rol a ' + esc(p.email) + '"' + (tmUI.busy ? " disabled" : "") + ">" + ic("x") + "</button>") + "</div>";
-      }).join("") + "</div>";
+    var me = (acct() || {}).email || "", L = tmUI.list || [];
+    var adm = L.filter(function (p) { return p.role === "admin"; }), org = L.filter(function (p) { return p.role !== "admin"; });
+    var av = function (p) { return '<span class="tm2-av tm2-av--' + esc(p.role) + '">' + esc(String(p.name || p.email).trim().charAt(0).toUpperCase()) + "</span>"; };
+    var person = function (p) {
+      var self = String(p.email).toLowerCase() === me.toLowerCase();
+      return '<div class="tm2-p">' + av(p) + '<span class="tm2-who"><strong>' + esc(p.name || p.email.split("@")[0]) + (self ? " <small>vos</small>" : "") + "</strong><small>" + esc(p.email) + "</small></span>" +
+        (self ? '<em class="ac-role ac-role--' + esc(p.role) + '">' + (p.role === "admin" ? "Admin" : "Organizador") + "</em>" :
+          '<label class="tm2-role"><span class="sr">Rol de ' + esc(p.email) + '</span><select data-tm-role="' + esc(p.email) + '"' + (tmUI.busy ? " disabled" : "") + '><option value="organizador"' + (p.role !== "admin" ? " selected" : "") + '>Organizador</option><option value="admin"' + (p.role === "admin" ? " selected" : "") + ">Admin</option></select>" + ic("chev") + "</label>" +
+          '<button type="button" class="tm2-rm" data-tm-rm="' + esc(p.email) + '" aria-label="Sacarle el rol a ' + esc(p.email) + '"' + (tmUI.busy ? " disabled" : "") + ">" + ic("x") + "</button>") + "</div>";
+    };
+    var group = function (title, list, cls) { return list.length ? '<div class="tm2-g"><p class="tm2-gk ' + cls + '">' + title + " <b>" + list.length + "</b></p>" + list.map(person).join("") + "</div>" : ""; };
+    var body = tmUI.list == null ? '<p class="tm-empty">Cargando…</p>' : !L.length ? '<p class="tm-empty">Todavía no hay nadie más.</p>' : group("Admins", adm, "is-adm") + group("Organizadores", org, "is-org");
     return mHead("Equipo", "Administración", "users") +
-      '<div data-team><div class="tm-roles"><p><b>Organizador</b><small>Carga y edita avisos y fechas</small></p><p><b>Admin</b><small>Lo mismo y además maneja el equipo</small></p></div>' +
-      '<form class="tm-card" data-tm-form novalidate><p class="pf-sec">Sumar a alguien</p><label class="sr" for="tmMail">Mail de la cuenta</label><input class="tm-in" id="tmMail" name="mail" type="email" autocomplete="off" placeholder="mail@de-la-cuenta.com" required>' +
-      '<div class="tm-seg" role="radiogroup" aria-label="Rol"><label><input type="radio" name="role" value="organizador" checked><span>Organizador</span></label><label><input type="radio" name="role" value="admin"><span>Admin</span></label></div>' +
-      '<button type="submit" class="btn btn--primary"' + (tmUI.busy ? " disabled" : "") + ">" + (tmUI.busy ? "Guardando…" : "Sumar al equipo") + "</button>" +
-      '<p class="tm-hint tm-foot">Tiene que haber entrado una vez con su cuenta.</p></form>' +
-      (tmUI.msg ? '<p class="ac-msg' + (tmUI.tone ? " is-" + tmUI.tone : "") + '" role="status">' + esc(tmUI.msg) + "</p>" : "") +
-      '<p class="pf-sec">Con rol' + (n ? " · " + n : "") + "</p>" + rows + "</div>";
+      '<div data-team><div class="tm2-hero"><div class="tm2-stack">' + L.slice(0, 5).map(av).join("") + '</div><div class="tm2-n"><span><b>' + adm.length + "</b>admin" + (adm.length === 1 ? "" : "s") + "</span><span><b>" + org.length + "</b>organizador" + (org.length === 1 ? "" : "es") + "</span></div>" +
+      '<p>Los organizadores cargan avisos y fechas. Los admins, además, manejan el equipo.</p></div>' +
+      '<form class="tm2-add" data-tm-form novalidate><label class="sr" for="tmMail">Mail de la cuenta</label><input id="tmMail" name="mail" type="email" autocomplete="off" placeholder="mail@de-la-cuenta.com" required>' +
+      '<label class="tm2-role"><span class="sr">Rol</span><select name="role"><option value="organizador">Organizador</option><option value="admin">Admin</option></select>' + ic("chev") + "</label>" +
+      '<button type="submit" class="btn btn--primary btn--sm"' + (tmUI.busy ? " disabled" : "") + ">" + ic("plus") + "<span>Sumar</span></button></form>" +
+      '<p class="tm-hint tm2-foot">La persona tiene que haber entrado una vez con su cuenta.</p>' +
+      (tmUI.msg ? '<p class="ac-msg' + (tmUI.tone ? " is-" + tmUI.tone : "") + '" role="status">' + esc(tmUI.msg) + "</p>" : "") + body + "</div>";
   }
   function bindTeam() {
     var run = function (mail, r, okMsg) {
@@ -3654,6 +3657,10 @@
     sheetBody.onclick = function (e) {
       var rm = e.target.closest("[data-tm-rm]"); if (!rm) return;
       run(rm.dataset.tmRm, "estudiante", "Listo, " + rm.dataset.tmRm + " ya no tiene rol.");
+    };
+    sheetBody.onchange = function (e) {
+      var sel = e.target.closest("[data-tm-role]"); if (!sel) return;
+      run(sel.dataset.tmRole, sel.value, "Listo: " + sel.dataset.tmRole + " ahora es " + (sel.value === "admin" ? "admin" : "organizador") + ".");
     };
     sheetBody.onsubmit = function (e) {
       var f = e.target.closest("[data-tm-form]"); if (!f) return;

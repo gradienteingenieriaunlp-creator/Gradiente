@@ -3456,3 +3456,53 @@ h2.nos-t { font-family: var(--display); font-weight: 700; font-size: clamp(30px,
 .ob-row.is-on .ob-mono { background: var(--accent); color: #fff; }
 .ob-row.is-on .ob-rd { box-shadow: inset 0 0 0 6px var(--accent); }
 .ob-none { margin: 10px 4px; color: var(--muted); font-size: 14px; }
+/* números del pomodoro: letra de ancho normal, tarjetas más anchas y la unión del medio finita */
+.pomo-sq .flip { font-family: var(--font); font-weight: 700; font-size: 70px; gap: 6px; }
+.pomo-sq .fl { width: .8em; }
+.pomo-sq .fl > span { background: color-mix(in srgb, var(--ink) 8%, var(--surface)); }
+.pomo-sq .fl-l { background: color-mix(in srgb, var(--ink) 6%, var(--surface)) !important; }
+.pomo-sq .fl::after { height: 1px; margin-top: -.5px; background: color-mix(in srgb, var(--bg) 85%, transparent); }
+.pomo-sq .fl-dots { padding: 0 2px; }
+@media (max-width: 360px) { .pomo-sq .flip { font-size: 60px; } }
+.pomo-time .fl b { font-size: inherit; font-family: inherit; font-weight: inherit; letter-spacing: 0; }
+/* equipo v2: tarjeta de arriba como la credencial del perfil, alta en una fila y personas agrupadas por rol */
+.tm2-hero { position: relative; overflow: hidden; margin: 4px 0 12px; padding: 14px 16px; border-radius: 18px; color: #fff;
+  background: radial-gradient(120% 140% at 100% 0%, rgba(225, 29, 72, .45), transparent 55%), linear-gradient(135deg, #22357a, #0b1640 70%); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); }
+.tm2-hero::after { content: ""; position: absolute; right: -40px; top: -40px; width: 140px; height: 140px; border-radius: 50%; border: 16px solid rgba(255, 255, 255, .06); }
+.tm2-stack { display: flex; }
+.tm2-stack .tm2-av { width: 34px; height: 34px; font-size: 14px; margin-left: -8px; box-shadow: 0 0 0 3px #16245a; }
+.tm2-stack .tm2-av:first-child { margin-left: 0; }
+.tm2-n { display: flex; gap: 18px; margin-top: 10px; }
+.tm2-n span { display: flex; align-items: baseline; gap: 6px; font-size: 13px; color: rgba(255, 255, 255, .75); }
+.tm2-n b { font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1; color: #fff; }
+.tm2-hero p { position: relative; margin: 8px 0 0; font-size: 12.5px; line-height: 1.4; color: rgba(255, 255, 255, .7); }
+.tm2-av { width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: 18px; color: #fff; background: linear-gradient(160deg, #6366f1, #3b3fb0); }
+.tm2-av--admin { background: linear-gradient(160deg, #fb7185, #e11d48); }
+.tm2-add { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; padding: 6px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); }
+.tm2-add input { min-width: 0; height: 40px; padding: 0 10px; border: 0; border-radius: 10px; background: transparent; color: var(--ink); font: inherit; font-size: 15px; outline: 0; }
+.tm2-add .btn { height: 40px; gap: 4px; padding: 0 12px; }
+.tm2-add .btn svg { width: 15px; height: 15px; }
+.tm2-role { position: relative; display: inline-flex; align-items: center; }
+.tm2-role select { appearance: none; -webkit-appearance: none; height: 34px; padding: 0 28px 0 12px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent); background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.tm2-add .tm2-role select { height: 40px; border-radius: 10px; }
+.tm2-role svg { position: absolute; right: 10px; width: 12px; height: 12px; transform: rotate(90deg); pointer-events: none; color: var(--muted); }
+.tm2-foot { margin: 6px 4px 14px; font-size: 12.5px; }
+.tm2-g { margin-bottom: 12px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--line); overflow: hidden; }
+.tm2-gk { display: flex; align-items: center; gap: 6px; margin: 0; padding: 10px 14px 6px; font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.tm2-gk b { padding: 1px 7px; border-radius: 999px; font-size: 10.5px; background: color-mix(in srgb, var(--ink) 10%, transparent); color: var(--ink); }
+.tm2-gk.is-adm b { background: color-mix(in srgb, var(--red) 18%, transparent); color: var(--red); }
+.tm2-p { display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 14px; border-top: 1px solid var(--line); }
+.tm2-who { flex: 1; min-width: 0; display: grid; }
+.tm2-who strong { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm2-who strong small { margin-left: 4px; padding: 1px 6px; border-radius: 999px; font-size: 10.5px; background: color-mix(in srgb, var(--ink) 10%, transparent); color: var(--ink-2); }
+.tm2-who > small { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm2-rm { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 10px; color: var(--muted); }
+.tm2-rm:hover { color: var(--red); background: color-mix(in srgb, var(--red) 10%, transparent); }
+.tm2-rm svg { width: 14px; height: 14px; }
+.tm2-add { grid-template-columns: minmax(0, 1fr) auto; }
+.tm2-add input { grid-column: 1 / -1; height: 42px; border-radius: 10px; background: var(--surface); border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); }
+.tm2-add input:focus { border-color: var(--focus); }
+.tm2-add .tm2-role select { width: 100%; }
+.tm2-add .tm2-role { display: flex; }
+.tm2-p .tm2-role select { height: 30px; padding: 0 24px 0 10px; font-size: 12px; }
+.tm2-p .tm2-role svg { right: 8px; }
