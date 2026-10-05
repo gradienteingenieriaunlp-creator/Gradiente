@@ -3301,7 +3301,7 @@
      ENCABEZADO: perfil (izquierda) y notificaciones (derecha)
      ====================================================================== */
   // variantes del sheet: "modal" centrado (perfil) y "side" lateral (notificaciones). Se sacan solas al cerrarse.
-  var SHEET_VARIANTS = ["sheet--modal", "sheet--side", "sheet--auth", "sheet--av"], pfDirty = false;
+  var SHEET_VARIANTS = ["sheet--modal", "sheet--side", "sheet--auth", "sheet--av", "sheet--ntl"], pfDirty = false;
   function openSheetAs(cls, fn) {
     SHEET_VARIANTS.forEach(function (c) { sheet.classList.remove(c); });
     openSheet(fn);
@@ -3838,7 +3838,7 @@
     });
     (DATA.fechas || []).filter(function (e) { return e.k !== "info" && e.h >= today && e.d <= lim; }).forEach(function (e) {
       var k = CAL_K[e.k] || CAL_K.info;
-      out.push({ id: "cal:" + e.d + ":" + e.t, kind: "cal", color: k.color, label: k.label, t: e.t, x: whenLabel(e, today) + (e.n ? " · " + e.n : ""), d: e.d < today ? today : e.d, url: e.url, sort: "3" + (e.d < today ? today : e.d) });
+      out.push({ id: "cal:" + e.d + ":" + e.t, kind: "cal", ev: e, color: k.color, label: k.label, t: e.t, x: whenLabel(e, today) + (e.n ? " · " + e.n : ""), d: e.d < today ? today : e.d, url: e.url, sort: "3" + (e.d < today ? today : e.d) });
     });
     if (c) {
       var s = summary(c);
@@ -3856,45 +3856,59 @@
   }
   // marca de Gradiente: así se distingue lo que cargó el equipo de lo que sale del calendario
   function gradMark() { return '<span class="nt2-mark">' + ic("nabla") + "Gradiente</span>"; }
+  /* notificaciones como línea de tiempo: "Ahora" arriba, después día por día; los avisos de Gradiente van en el día que empiezan */
   function notifsView(list, unread) {
-    var isNew = {}, today = isoOf(new Date()); unread.forEach(function (n) { isNew[n.id] = 1; });
-    var grad = list.filter(function (n) { return n.kind === "grad"; }), fac = list.filter(function (n) { return n.kind === "fac"; }),
-      cal = list.filter(function (n) { return n.kind === "cal"; }), plan = list.filter(function (n) { return n.kind === "plan"; });
-    var i = 0, st = function () { return ' style="--i:' + (i++) + '"'; };
-    var h = '<div class="dHead"><div><p class="dMeta">' + (unread.length ? unread.length + (unread.length === 1 ? " nueva" : " nuevas") : "Estás al día") + '</p><h2 class="h2" id="sheetTitle">Notificaciones</h2></div>' +
+    var isNew = {}, now = new Date(), today = isoOf(now), tomorrow = isoOf(addDays(now, 1)); unread.forEach(function (n) { isNew[n.id] = 1; });
+    var i = 0, st = function (extra) { return ' style="--i:' + (i++) + (extra ? ";" + extra : "") + '"'; };
+    var hh = ("0" + now.getHours()).slice(-2) + ":" + ("0" + now.getMinutes()).slice(-2);
+    var h = '<div class="ntl-hd"><div class="ntl-top"><span class="ntl-kick">' + DIAS[now.getDay()].toLowerCase() + " " + now.getDate() + " de " + MESES[now.getMonth()] + "</span>" +
       (isStaff() ? '<button class="btn btn--sm btn--primary nt2-add" type="button" data-av-new>' + ic("plus") + "Aviso</button>" : "") +
-      '<button class="iconBtn iconBtn--sm" type="button" data-close aria-label="Cerrar">' + ic("x") + "</button></div>";
+      '<button class="iconBtn iconBtn--sm" type="button" data-close aria-label="Cerrar">' + ic("x") + "</button></div>" +
+      '<h2 class="ntl-big" id="sheetTitle">Lo que <span>viene</span></h2>' +
+      '<p class="ntl-sub">' + (unread.length ? "<b>" + unread.length + "</b> " + (unread.length === 1 ? "nueva" : "nuevas") : "Estás al día") + "</p></div>";
     if (!list.length) return h + '<div class="nt-empty">' + ic("bell") + "<p><strong>No hay nada por ahora.</strong><br>Acá te van a aparecer avisos, paros y fechas importantes.</p></div>";
-    if (grad.length) h += '<p class="pf-sec">De Gradiente</p><div class="nt2-grad">' + grad.map(function (n) {
-      var a = n.av;
-      return '<button type="button" class="nt2-av' + (isNew[n.id] ? " is-new" : "") + (a.pinned ? " is-pin" : "") + (n.st !== "on" ? " is-" + n.st : "") + '" data-av="' + esc(a.id) + '"' + st() + ">" +
-        (a.image ? '<span class="nt2-img"><img src="' + esc(a.image) + '" alt="" loading="lazy"></span>' : '<span class="nt2-img nt2-img--ic" style="--nc:' + n.k.color + '">' + ic(n.k.icon) + "</span>") +
-        '<span class="nt2-b"><span class="nt2-top">' + gradMark() + '<span class="nt2-kind" style="--nc:' + n.k.color + '">' + n.k.label + "</span>" +
-        (a.pinned ? '<span class="nt2-pin" title="Fijado">' + ic("tack") + "</span>" : "") +
-        (n.st === "prog" ? '<span class="nt2-st">Desde el ' + fmtShort(a.starts_on) + "</span>" : n.st === "old" ? '<span class="nt2-st">Vencido</span>' : "") +
-        '<time class="nt2-when">' + agoLabel(a.starts_on, today) + "</time></span><strong>" + esc(a.title) + "</strong>" + (a.body ? "<small>" + esc(a.body) + "</small>" : "") + "</span>" +
-        (isNew[n.id] ? '<i class="nt-new" aria-label="Nueva"></i>' : "") + "</button>";
-    }).join("") + "</div>";
-    var row = function (n) {
-      var inner = '<span class="nt-ic" style="--nc:' + n.color + '">' + ic(n.icon) + '</span><span class="nt-t"><strong>' + esc(n.t) + "</strong><small>" + esc(n.x) + "</small></span>" + (isNew[n.id] ? '<i class="nt-new" aria-label="Nueva"></i>' : "");
-      var at = ' class="nt2-row' + (isNew[n.id] ? " is-new" : "") + '"' + st();
-      if (n.url) return "<a" + at + ' href="' + esc(n.url) + '" target="_blank" rel="noopener">' + inner + "</a>";
-      if (n.go) return "<a" + at + ' href="' + esc(n.go) + '" data-close>' + inner + "</a>";
-      return '<button type="button"' + at + (n.onboard ? " data-nt-onboard" : "") + ">" + inner + "</button>";
+
+    // cada cosa va a un día (o a un grupo sin fecha al final)
+    var days = {}, extra = { fac: [], plan: [], old: [] };
+    list.forEach(function (n) {
+      if (n.kind === "grad") { if (n.st === "old") extra.old.push(n); else (days[n.st === "prog" ? n.av.starts_on : today] = days[n.st === "prog" ? n.av.starts_on : today] || []).push(n); }
+      else if (n.kind === "cal") (days[n.d] = days[n.d] || []).push(n);
+      else if (n.kind === "fac") extra.fac.push(n); else extra.plan.push(n);
+    });
+    var dayHead = function (iso) {
+      var d = dateOf(iso), big = iso === today ? "Hoy" : iso === tomorrow ? "Mañana" : DIAS[d.getDay()];
+      return '<div class="ntl-dh"><b>' + big + "</b><span>" + DIAS[d.getDay()].slice(0, 3).toLowerCase() + " " + d.getDate() + " " + MESES[d.getMonth()].slice(0, 3) + "</span></div>";
     };
-    if (fac.length) h += '<p class="pf-sec">De la Facultad</p><div class="nt2-list">' + fac.map(row).join("") + "</div>";
-    if (cal.length) h += '<p class="pf-sec">Se viene <button type="button" class="nt2-more" data-nt-cal>Ver calendario</button></p><div class="nt2-list">' + cal.map(function (n) {
-      var d = dateOf(n.d), inner = '<span class="nt2-date" style="--nc:' + n.color + '"><b>' + d.getDate() + "</b><small>" + MESES[d.getMonth()].slice(0, 3) + "</small></span>" +
-        '<span class="nt-t"><em class="nt2-cal-k" style="--nc:' + n.color + '">' + esc(n.label) + "</em><strong>" + esc(n.t) + "</strong><small>" + esc(n.x) + "</small></span>" + (isNew[n.id] ? '<i class="nt-new" aria-label="Nueva"></i>' : "");
-      return '<button type="button" class="nt2-row' + (isNew[n.id] ? " is-new" : "") + '" data-nt-cal' + st() + ">" + inner + "</button>";
-    }).join("") + "</div>";
-    if (plan.length) h += '<p class="pf-sec">Tu plan</p><div class="nt2-list">' + plan.map(row).join("") + "</div>";
+    var item = function (n, past) {
+      var chip, kc, kl, title, sub, attrs, img = "", grad = n.kind === "grad";
+      if (grad) {
+        var a = n.av; kc = n.k.color; kl = n.k.label; title = a.title; sub = a.body || "";
+        chip = n.st === "prog" ? "desde " + fmtShort(a.starts_on) : a.ends_on ? "hasta " + fmtShort(a.ends_on) : "vigente";
+        if (a.image) img = '<span class="ntl-img"><img src="' + esc(a.image) + '" alt="" loading="lazy"></span>';
+        attrs = ' data-av="' + esc(a.id) + '"';
+      } else if (n.kind === "cal") { kc = n.color; kl = n.label; title = n.t; sub = n.x; chip = n.ev.h > n.ev.d ? (n.ev.d <= today ? "hasta " + fmtShort(n.ev.h) : fmtShort(n.ev.d) + " al " + fmtShort(n.ev.h)) : "todo el día"; attrs = " data-nt-cal"; }
+      else { kc = n.color; kl = n.kind === "fac" ? "Facultad" : "Tu plan"; title = n.t; sub = n.x; chip = n.kind === "fac" ? "aviso" : "plan"; attrs = n.onboard ? " data-nt-onboard" : ""; }
+      var card = '<span class="ntl-card' + (grad ? " is-grad" : "") + '"><span class="ntl-meta">' + (grad ? gradMark() : "") + '<span class="ntl-kind" style="--nc:' + kc + '">' + esc(kl) + "</span>" +
+        (grad && n.av.pinned ? '<span class="nt2-pin" title="Fijado">' + ic("tack") + "</span>" : "") + (isNew[n.id] ? '<span class="ntl-new">Nuevo</span>' : "") + "</span>" +
+        '<span class="ntl-txt"><strong>' + esc(title) + "</strong>" + (sub ? "<small>" + esc(sub) + "</small>" : "") + "</span>" + img + "</span>";
+      var inner = '<span class="ntl-tm"><span>' + esc(chip) + '</span></span><span class="ntl-rail"><i style="--nc:' + (grad ? "var(--accent)" : kc) + '"' + (grad ? ' class="is-grad"' : "") + "></i></span>" + card;
+      var cls = ' class="ntl-ev' + (past ? " is-past" : "") + '"' + st();
+      if (n.url) return "<a" + cls + ' href="' + esc(n.url) + '" target="_blank" rel="noopener">' + inner + "</a>";
+      if (n.go) return "<a" + cls + ' href="' + esc(n.go) + '" data-close>' + inner + "</a>";
+      return '<button type="button"' + cls + attrs + ">" + inner + "</button>";
+    };
+    h += '<div class="ntl-now" aria-label="Ahora, ' + hh + '"><span class="ntl-tm"><span>' + hh + '</span></span><span class="ntl-rail"><i></i></span><span class="ntl-ln"></span></div>';
+    Object.keys(days).sort().forEach(function (iso) { h += '<div class="ntl-day">' + dayHead(iso) + days[iso].map(function (n) { return item(n); }).join("") + "</div>"; });
+    var group = function (k, arr, past) { if (arr.length) h += '<div class="ntl-day"><div class="ntl-dh"><b>' + k + "</b></div>" + arr.map(function (n) { return item(n, past); }).join("") + "</div>"; };
+    group("De la Facultad", extra.fac); group("Tu plan", extra.plan); group("Vencidos", extra.old, true);
+    h += '<button type="button" class="ntl-cal" data-nt-cal>' + ic("cal") + "Ver el calendario completo" + ic("chev") + "</button>";
     return h;
   }
   function openNotifs() {
     Promise.all([ensureLinks(), ensureFechas(), ensurePlans(), ensureAvisos(true)]).then(function () {
       var list = buildNotifs(), unread = unreadNotifs(list);
       openSheetAs("sheet--side", function () { return notifsView(buildNotifs(), unread); });
+      sheet.classList.add("sheet--ntl");
       var seen = store.get(NT_SEEN, []) || [];
       store.set(NT_SEEN, list.map(function (n) { return n.id; }).concat(seen.filter(function (id) { return !list.some(function (n) { return n.id === id; }); })).slice(0, 300));
       paintBell();
