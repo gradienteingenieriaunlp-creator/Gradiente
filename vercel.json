@@ -31,6 +31,8 @@
     { "source": "/consultas", "destination": "/#/consultas", "permanent": true },
     { "source": "/consultas/", "destination": "/#/consultas", "permanent": true },
     { "source": "/mesa", "destination": "/#/mesita", "permanent": true },
+    { "source": "/privacidad", "destination": "/#/privacidad", "permanent": true },
+    { "source": "/privacidad/", "destination": "/#/privacidad", "permanent": true },
     { "source": "/mesa/", "destination": "/#/mesita", "permanent": true },
     { "source": "/links.json", "destination": "/data/links.json", "permanent": true },
     { "source": "/kiosco.json", "destination": "/data/kiosco.json", "permanent": true }
