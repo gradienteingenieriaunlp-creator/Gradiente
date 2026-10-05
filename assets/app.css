@@ -3184,3 +3184,126 @@ h2.nos-t { font-family: var(--display); font-weight: 700; font-size: clamp(30px,
 .fMat select { color-scheme: inherit; }
 .fMat select option { background: var(--surface); color: var(--ink); }
 .fMat.is-on { border-style: solid; border-color: var(--accent); color: var(--ink); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+/* ======================================================================
+   v5 · notas de la galería
+   ====================================================================== */
+/* encabezado de los modales: un ícono con el color de la página */
+.sheet .dHead-ic { width: 38px; height: 38px; flex: none; border-radius: 12px; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 88%, #fff), var(--accent)); box-shadow: 0 6px 16px -8px var(--accent); }
+.sheet .dHead-ic svg { width: 19px; height: 19px; }
+
+/* paletas: mini página con los colores reales (fondo, barra, saludo, accesos y un modal) */
+.pal-pv { --sf: #fff; --s3: #eee; --ln: #ddd; --mu: #888; --bl: #2a4bb0; --nv: #1d2c63; }
+.pal-pv > i, .pal-pv > span { position: absolute; display: block; }
+.pal-pv .pv-bar { left: 0; right: 0; top: 0; height: 13%; background: var(--sf); border-bottom: 1px solid var(--ln); }
+.pal-pv .pv-h { left: 8%; top: 22%; width: 40%; height: 8%; border-radius: 2px; background: var(--t); }
+.pal-pv .pv-h2 { left: 50%; top: 22%; width: 20%; height: 8%; border-radius: 2px; background: var(--a); }
+.pal-pv .pv-tiles { left: 8%; right: 8%; top: 38%; height: 20%; display: grid !important; grid-template-columns: repeat(3, 1fr); gap: 4%; }
+.pal-pv .pv-tiles i { position: static; border-radius: 4px; }
+.pal-pv .pv-tiles i:nth-child(1) { background: var(--nv); }
+.pal-pv .pv-tiles i:nth-child(2) { background: var(--a); }
+.pal-pv .pv-tiles i:nth-child(3) { background: var(--bl); }
+.pal-pv .pv-modal { right: 8%; bottom: 8%; width: 52%; height: 30%; border-radius: 6px; background: var(--sf); border: 1px solid var(--ln); box-shadow: 0 4px 10px -4px rgba(0,0,0,.45); }
+.pal-pv .pv-modal i { position: absolute; left: 10%; height: 14%; border-radius: 2px; }
+.pal-pv .pv-m1 { top: 18%; width: 55%; background: var(--t); }
+.pal-pv .pv-m2 { top: 44%; width: 75%; background: var(--mu); opacity: .6; }
+.pal-pv .pv-m3 { top: 70%; width: 32%; height: 18% !important; border-radius: 4px !important; background: var(--a); }
+/* en la fila del perfil: tres puntitos de la paleta */
+.pal-dots { display: inline-flex; flex: none; align-items: center; width: 34px; height: 24px; }
+.pal-dots i { width: 16px; height: 16px; margin-left: -5px; border-radius: 50%; box-shadow: 0 0 0 2px var(--surface); }
+.pal-dots i:nth-child(1) { margin-left: 0; background: var(--b); box-shadow: 0 0 0 2px var(--surface), inset 0 0 0 1px var(--ln); }
+.pal-dots i:nth-child(2) { background: var(--a); }
+.pal-dots i:nth-child(3) { background: var(--bl); }
+
+/* cerrar sesión: dos filas */
+.so-opts { grid-template-columns: 1fr; }
+.so-opt { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.so-opt > span:last-child { flex: 1; min-width: 0; }
+
+/* detalle del aviso: botones en una fila */
+.av-acts { flex-wrap: nowrap; }
+.av-acts .btn { flex: 1 1 0; min-width: 0; justify-content: center; padding: 0 10px; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* notificaciones: todo con el mismo estilo de fila; los de Gradiente con su marca y la foto chiquita */
+.nt2-av { display: flex; align-items: flex-start; gap: 12px; padding: 10px; }
+.nt2-img { width: 54px; height: 54px; flex: none; aspect-ratio: auto; border-radius: 12px; overflow: hidden; }
+.nt2-img--ic { display: grid; place-items: center; color: #fff; background: var(--nc); }
+.nt2-img--ic svg { width: 22px; height: 22px; }
+.nt2-b { flex: 1; padding: 0; gap: 3px; }
+.nt2-b strong { font-size: 14.5px; }
+.nt2-b small { -webkit-line-clamp: 2; font-size: 12.5px; }
+.nt2-av .nt-new { top: 8px; right: 8px; }
+.nt2-row { padding: 9px 10px; }
+
+/* nota: colores por nota (más alta, más verde) */
+.g-lo { --gc: #f59e0b; }
+.g-mid { --gc: #84cc16; }
+.g-hi { --gc: var(--st-done); }
+.sj-grade button, .gdlg-grades button { border: 1px solid color-mix(in srgb, var(--gc) 35%, transparent); background: color-mix(in srgb, var(--gc) 8%, transparent); color: var(--ink); font-family: var(--display); font-weight: 800; }
+.sj-grade button:hover, .gdlg-grades button:hover { border-color: var(--gc); color: var(--gc); background: color-mix(in srgb, var(--gc) 14%, transparent); }
+.sj-grade button[aria-pressed="true"], .gdlg-grades button.is-picked { background: var(--gc); border-color: var(--gc); color: #0b0d14; box-shadow: 0 6px 14px -6px var(--gc); }
+.sj-grade { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.sj-grade button { height: 40px; border-radius: 11px; font-size: 19px; }
+
+/* el mini modal de la nota al aprobar */
+.gdlg-bg { background: color-mix(in srgb, #040817 64%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.gdlg-card { width: min(360px, 100%); padding: 26px 22px 14px; border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  background: radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, var(--st-done) 16%, transparent), transparent 70%), var(--surface);
+  box-shadow: 0 30px 80px -20px rgba(0,0,0,.65); }
+.gdlg-mark { position: relative; width: 58px; height: 58px; margin-bottom: 12px; background: var(--st-done); color: #fff; box-shadow: 0 10px 24px -10px var(--st-done); animation: gPop .5s var(--ease) both; }
+.gdlg-mark svg { width: 28px; height: 28px; }
+.gdlg-mark i { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: var(--st-done); opacity: 0; animation: gSpark .9s .15s ease-out both; }
+.gdlg-mark i:nth-of-type(1) { --dx: -30px; --dy: -14px; }
+.gdlg-mark i:nth-of-type(2) { --dx: 30px; --dy: -18px; background: var(--accent); }
+.gdlg-mark i:nth-of-type(3) { --dx: 22px; --dy: 24px; background: #f59e0b; }
+@keyframes gPop { from { transform: scale(.4); opacity: 0; } 60% { transform: scale(1.1); } }
+@keyframes gSpark { 0% { opacity: 1; transform: translate(0, 0) scale(.6); } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1.2); } }
+.gdlg-k { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; font-family: var(--mono); }
+.gdlg-t { font-size: 25px; margin-top: 4px; }
+.gdlg-q { margin: 16px 0 10px; font-weight: 600; color: var(--ink); }
+.gdlg-grades { gap: 6px; }
+.gdlg-grades button { height: 50px; border-radius: 13px; font-size: 22px; }
+.gdlg-avg { min-height: 20px; margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+.gdlg-avg b { color: var(--ink); font-family: var(--display); font-size: 16px; }
+.gdlg-skip { margin-top: 6px; }
+@media (prefers-reduced-motion: reduce) { .gdlg-mark, .gdlg-mark i { animation: none; } }
+
+/* atajos de la materia: cada uno con su color */
+.sj-tile { --tc: var(--ink-2); position: relative; overflow: hidden; }
+.sj-tile::after { content: ""; position: absolute; right: -18px; top: -18px; width: 60px; height: 60px; border-radius: 50%; background: color-mix(in srgb, var(--tc) 14%, transparent); }
+.sj-tile-ic { color: #fff; background: var(--tc); }
+.sj-tile--nube { --tc: #0ea5e9; }
+.sj-tile--cat { --tc: #8b5cf6; }
+.sj-tile--aula { --tc: #f59e0b; }
+.sj-tile--plan { --tc: var(--accent); }
+.sj-tile:hover { border-color: color-mix(in srgb, var(--tc) 50%, transparent); }
+
+/* AFC: un poco más de aire y color */
+.afc2-big b { font-size: 46px; color: var(--st-cur); }
+.sj-head--done .afc2-big b { color: var(--st-done); }
+.afc-bar { height: 10px; border-radius: 10px; }
+.afc2-step i { height: 8px; }
+.afc2-step.is-full span { color: var(--st-done); }
+.afc-types button { height: 34px; }
+.afc-types button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.afc-q { font-family: var(--display); font-weight: 800; font-size: 17px; color: var(--st-done); border: 1px solid color-mix(in srgb, var(--st-done) 40%, transparent); background: color-mix(in srgb, var(--st-done) 10%, transparent); }
+
+/* formulario del aviso: más claro */
+.av-form { gap: 14px; }
+.av-kinds button { padding: 11px 4px; }
+.av-photo { min-height: 110px; background: color-mix(in srgb, var(--ink) 3%, transparent); }
+.av-photo small { font-size: 13px; font-weight: 600; }
+.av-pinrow { padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 7%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent); }
+
+/* ayuda: más vivo, con los colores de la página */
+.helpNube { background: linear-gradient(135deg, #0284c7, #0ea5e9 55%, #38bdf8); border: 0; color: #fff; box-shadow: 0 14px 30px -16px #0ea5e9; }
+.helpNube em, .helpNube small, .helpNube > svg { color: rgba(255,255,255,.85); }
+.helpNube-ic { background: rgba(255,255,255,.2); }
+.helpTopic { border-color: color-mix(in srgb, var(--cc, var(--ink)) 22%, transparent); background: color-mix(in srgb, var(--cc, var(--ink)) 6%, var(--surface)); }
+.helpTopic-ic { background: var(--cc, var(--accent)); color: #fff; box-shadow: 0 6px 14px -8px var(--cc, var(--accent)); }
+
+/* listas de opciones: la última fila (reiniciar) también plana */
+.sheet .sheetList > button, .sheet .sheetList > a { box-shadow: none !important; }
+.sheet .sheetList .danger { background: none; }
+.sheet .sheetList .danger:hover { background: color-mix(in srgb, var(--red) 8%, transparent); }

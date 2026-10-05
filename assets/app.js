@@ -115,10 +115,28 @@
   function palSwatch(p) {
     return '<span class="pal-sw" style="background:' + p.sw[0] + '">' + p.sw.slice(1).map(function (c) { return '<i style="background:' + c + '"></i>'; }).join("") + "</span>";
   }
+  // lee los colores de verdad de cada paleta (los del CSS) aplicándola un instante, sin que se vea
+  var PAL_VARS = {};
+  function palVars(p) {
+    if (PAL_VARS[p.id]) return PAL_VARS[p.id];
+    var root = document.documentElement, t0 = root.dataset.theme, p0 = root.dataset.palette;
+    root.dataset.theme = p.theme; if (p.id === p.theme) delete root.dataset.palette; else root.dataset.palette = p.id;
+    var cs = getComputedStyle(root), g = function (k) { return cs.getPropertyValue(k).trim(); };
+    var v = { bg: g("--bg"), sf: g("--surface"), s3: g("--surface-3"), ln: g("--line"), ink: g("--ink"), mu: g("--muted"),
+      red: g("--red"), blue: g("--blue") || "#2a4bb0", navy: (p.theme === "dark" ? g("--navy-t") : "") || g("--navy") || "#1d2c63", ok: g("--st-done") };
+    if (t0) root.dataset.theme = t0; else delete root.dataset.theme;
+    if (p0) root.dataset.palette = p0; else delete root.dataset.palette;
+    return (PAL_VARS[p.id] = v);
+  }
   function palPreview(p) {
-    var dark = p.theme === "dark", sw = p.sw;
-    return '<span class="pal-pv" style="--b:' + sw[0] + ";--p:" + sw[1] + ";--a:" + sw[2] + ";--g:" + sw[3] + ";--y:" + sw[4] + ";--t:" + (dark ? "#f4f6fd" : "#0e1530") + '" aria-hidden="true">' +
-      '<i class="pv-bar"></i><i class="pv-h"></i><i class="pv-l"></i><span class="pv-tiles"><i></i><i></i><i></i></span><span class="pv-chips"><i></i><i></i></span></span>';
+    var v = palVars(p);
+    return '<span class="pal-pv" style="--b:' + v.bg + ";--sf:" + v.sf + ";--s3:" + v.s3 + ";--ln:" + v.ln + ";--t:" + v.ink + ";--mu:" + v.mu + ";--a:" + v.red + ";--bl:" + v.blue + ";--nv:" + v.navy + ";--ok:" + v.ok + '" aria-hidden="true">' +
+      '<i class="pv-bar"></i><i class="pv-h"></i><i class="pv-h2"></i><span class="pv-tiles"><i></i><i></i><i></i></span>' +
+      '<span class="pv-modal"><i class="pv-m1"></i><i class="pv-m2"></i><i class="pv-m3"></i></span></span>';
+  }
+  function palDots(p) {
+    var v = palVars(p);
+    return '<span class="pal-dots" style="--b:' + v.bg + ";--a:" + v.red + ";--bl:" + v.blue + ";--ln:" + v.ln + '" aria-hidden="true"><i></i><i></i><i></i></span>';
   }
   function palGrid() {
     var cur = curPalette();
@@ -379,22 +397,29 @@
     setTimeout(function () { d.remove(); if (d._after) d._after(); }, 160);
     if (d._back && d._back.focus) try { d._back.focus({ preventScroll: true }); } catch (e) {}
   }
+  function gradeTone(n) { return n >= 8 ? "hi" : n >= 6 ? "mid" : "lo"; }
   function askGrade(c, code, after) {
     closeGrade();
-    var x = c.byCode[code];
+    var x = c.byCode[code], P = prog(c.id);
+    // promedio si eligiera cada nota (para mostrarlo al pasar por encima)
+    var avgWith = function (g) { var old = P[code] && P[code].n; if (P[code]) P[code].n = g; var a = summary(c).avg; if (P[code]) { if (old == null) delete P[code].n; else P[code].n = old; } return a; };
     var d = document.createElement("div");
     d.className = "gdlg";
     d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true"); d.setAttribute("aria-labelledby", "gdlgT");
     d.innerHTML = '<div class="gdlg-bg" data-g-skip></div><div class="gdlg-card">' +
-      '<span class="gdlg-mark">' + ic("check") + "</span>" +
-      '<p class="gdlg-k">Aprobada</p><h2 class="gdlg-t" id="gdlgT">' + esc(displayName(c, x)) + "</h2>" +
+      '<span class="gdlg-mark">' + ic("check") + '<i></i><i></i><i></i></span>' +
+      '<p class="gdlg-k">¡Aprobada!</p><h2 class="gdlg-t" id="gdlgT">' + esc(displayName(c, x)) + "</h2>" +
       '<p class="gdlg-q">¿Con qué nota?</p>' +
-      '<div class="gdlg-grades" role="group" aria-label="Nota">' + [4, 5, 6, 7, 8, 9, 10].map(function (n) { return '<button type="button" data-g="' + n + '">' + n + "</button>"; }).join("") + "</div>" +
+      '<div class="gdlg-grades" role="group" aria-label="Nota">' + [4, 5, 6, 7, 8, 9, 10].map(function (n) { return '<button type="button" class="g-' + gradeTone(n) + '" data-g="' + n + '">' + n + "</button>"; }).join("") + "</div>" +
+      '<p class="gdlg-avg" aria-live="polite">Elegí una para ver cómo queda tu promedio</p>' +
       '<button type="button" class="gdlg-skip" data-g-skip>Sin nota por ahora</button></div>';
     d._back = document.activeElement;
     d._after = after;
     document.body.appendChild(d);
     gradeDlg = d;
+    var avgEl = d.querySelector(".gdlg-avg");
+    var hint = function (ev) { var b = ev.target.closest && ev.target.closest("[data-g]"); if (b) avgEl.innerHTML = "Tu promedio quedaría en <b>" + fmtAvg(avgWith(+b.dataset.g)) + "</b>"; };
+    d.addEventListener("mouseover", hint); d.addEventListener("focusin", hint);
     setTimeout(function () { var f = d.querySelector('[data-g="7"]'); if (f) f.focus({ preventScroll: true }); }, 30);
     d.onclick = function (ev) {
       if (ev.target.closest("[data-g-skip]")) { closeGrade(); return; }
@@ -1982,7 +2007,7 @@
         '<input class="ob-input" id="obName" type="text" maxlength="30" autocomplete="given-name" placeholder="Tu nombre" value="' + esc(o.name) + '" data-autofocus>' +
         '<div class="ob-actions"><button class="btn btn--ghost" type="button" data-ob="skip">Saltar</button><button class="btn btn--primary" type="button" data-ob="next">Seguir</button></div>';
       if (o.step === 1) return head + '<h2 class="h2 ob-q" id="sheetTitle">' + (o.name ? esc(o.name) + ", ¿q" : "¿Q") + 'ué carrera estudiás?</h2><p class="muted ob-sub">Podés cambiarla cuando quieras.</p><div class="ob-grid">' +
-        DATA.plans.careers.map(function (c) { return '<button type="button" class="ob-opt ob-car' + (o.career === c.id ? " is-on" : "") + '" data-ob-career="' + c.id + '"><span class="ob-mono" aria-hidden="true">' + esc(careerMono(c)) + "</span><span>" + esc(c.short) + "</span></button>"; }).join("") +
+        DATA.plans.careers.map(function (c) { return '<button type="button" class="ob-opt ob-car' + (o.career === c.id ? " is-on" : "") + '" data-ob-career="' + c.id + '"><span class="ob-mono" aria-hidden="true">' + esc(careerMono(c)) + "</span><span>" + esc(c.short).replace("Telecomunicaciones", "Tele&shy;comunica&shy;ciones").replace("Electromecánica", "Electro&shy;mecánica") + "</span></button>"; }).join("") +
         '</div><div class="ob-actions">' + (known ? "<span></span>" : '<button class="btn btn--ghost" type="button" data-ob="back">Atrás</button>') + '<button class="btn btn--primary" type="button" data-ob="next"' + (o.career ? "" : " disabled") + ">Seguir</button></div>";
       return head + '<h2 class="h2 ob-q" id="sheetTitle">¿Hasta dónde llegaste?</h2><p class="muted ob-sub">Marcamos como aprobadas las materias hasta ahí. Después ajustás lo que haga falta.</p><div class="ob-list">' +
         LEVELS.map(function (l) { return '<button type="button" class="ob-lvl' + (o.level === l[0] ? " is-on" : "") + (o.level !== null && o.level !== 99 && l[0] !== 99 && l[0] <= o.level ? " is-past" : "") + (l[0] === 99 ? " ob-lvl--own" : "") + '" data-ob-level="' + l[0] + '"><i aria-hidden="true"></i><span><strong>' + l[1] + "</strong>" + (l[2] ? "<small>" + l[2] + "</small>" : "") + "</span></button>"; }).join("") +
@@ -2232,7 +2257,7 @@
       opts.map(function (o) { return '<button type="button" data-setst="' + o[0] + '" aria-pressed="' + (e.s === o[0]) + '" style="--sc:' + ST_COLOR[o[0]] + '"><i></i>' + o[1] + "</button>"; }).join("") + "</div>";
     if (x.k === "slot") h += '<button type="button" class="btn btn--sm dChange" data-chgpick>' + ic("edit") + (P.pick ? "Cambiar " : "Elegir ") + (x.pool === "hum" ? "humanística" : "optativa") + "</button>";
     if (e.s === "a" && !noGrade(x)) {
-      h += '<div class="gradeRow sj-grade"><span>Nota</span>' + [4, 5, 6, 7, 8, 9, 10].map(function (n) { return '<button type="button" data-grade="' + n + '" aria-pressed="' + (P.n === n) + '">' + n + "</button>"; }).join("") + "</div>";
+      h += '<p class="pf-sec">Tu nota' + (P.n ? ' <span class="pf2-sync">Promedio ' + fmtAvg(summary(c).avg) + "</span>" : "") + '</p><div class="gradeRow sj-grade">' + [4, 5, 6, 7, 8, 9, 10].map(function (n) { return '<button type="button" class="g-' + gradeTone(n) + '" data-grade="' + n + '" aria-pressed="' + (P.n === n) + '">' + n + "</button>"; }).join("") + "</div>";
     }
 
     // correlativas: lo que necesita y lo que habilita
@@ -2261,10 +2286,10 @@
     var tile = function (href, icon, t, sub, cls) { return '<a class="sj-tile' + (cls ? " " + cls : "") + '" href="' + esc(href) + '" target="_blank" rel="noopener"><span class="sj-tile-ic">' + ic(icon) + "</span><strong>" + t + "</strong><small>" + sub + "</small></a>"; };
     if (x.k !== "slot" && x.k !== "afc") {
       if (nb) tiles.push(tile(nubeUrl(x.c), "folder", "Apuntes", nb.n + " archivo" + (nb.n === 1 ? "" : "s") + " en la nube", "sj-tile--nube"));
-      if (cat) tiles.push(tile(base + cat.p, "building", "Cátedra", "Docentes, horarios y programa"));
-      tiles.push(tile("https://www.asignaturas.ing.unlp.edu.ar/course/search.php?search=" + encodeURIComponent(subjName(x.c)), "book", "Aula virtual", "Portal de Asignaturas"));
+      if (cat) tiles.push(tile(base + cat.p, "building", "Cátedra", "Docentes, horarios y programa", "sj-tile--cat"));
+      tiles.push(tile("https://www.asignaturas.ing.unlp.edu.ar/course/search.php?search=" + encodeURIComponent(subjName(x.c)), "book", "Aula virtual", "Portal de Asignaturas", "sj-tile--aula"));
     }
-    tiles.push(tile(c.official, "doc", "Plan oficial", "Web de la Facultad"));
+    tiles.push(tile(c.official, "doc", "Plan oficial", "Web de la Facultad", "sj-tile--plan"));
     h += '<p class="pf-sec">Atajos</p><div class="sj-tiles">' + tiles.join("") + "</div>";
     if (cat && cat.m && x.k !== "slot") h += '<div class="sj-mail">' + mailCard({ label: "Mail de la cátedra", mail: cat.m }) + "</div>";
     if (x.extra) h += '<button type="button" class="dFoot dFoot--rm" data-rmx>' + ic("x") + "Quitar de mi plan</button>";
@@ -2471,7 +2496,7 @@
   }
   function openTool(id) { if (id === "formulas") openFormulas(); else if (id === "pomodoro") openPomodoro(); else if (id === "tabla") openTabla(); }
   function toolHead(t) {
-    return '<div class="dHead"><div><p class="dMeta">Herramientas</p><h2 class="h2" id="sheetTitle">' + t + '</h2></div><button class="iconBtn" type="button" data-close aria-label="Cerrar">' + ic("x") + "</button></div>";
+    return mHead(t, "Herramientas", { "Fórmulas": "sigma", "Pomodoro": "timer", "Tabla periódica": "atom" }[t] || "spark");
   }
 
   /* fórmulas: data/formulas.json, dibujadas con KaTeX (se baja recién al abrirlas) */
@@ -3292,7 +3317,7 @@
   /* colores: botón propio al lado de la campana (también están en el perfil) */
   function openPalettes() {
     openSheetAs("sheet--modal", function () {
-      return mHead("Colores", "Ahora: " + curPalette().name) + '<div class="pal-sheet">' + palGrid() + "</div>";
+      return mHead("Colores", "Ahora: " + curPalette().name, "palette") + '<div class="pal-sheet">' + palGrid() + "</div>";
     });
     sheetBody.onclick = function (e) {
       var pal = e.target.closest("[data-pal]"); if (!pal) return;
@@ -3302,8 +3327,8 @@
     };
   }
   // encabezado común de los modales: título, bajada chica y la X
-  function mHead(title, meta) {
-    return '<div class="dHead"><div>' + (meta ? '<p class="dMeta">' + esc(meta) + "</p>" : "") + '<h2 class="h2" id="sheetTitle">' + esc(title) + '</h2></div><button class="iconBtn iconBtn--sm" type="button" data-close aria-label="Cerrar">' + ic("x") + "</button></div>";
+  function mHead(title, meta, icon) {
+    return '<div class="dHead">' + (icon ? '<span class="dHead-ic">' + ic(icon) + "</span>" : "") + '<div>' + (meta ? '<p class="dMeta">' + esc(meta) + "</p>" : "") + '<h2 class="h2" id="sheetTitle">' + esc(title) + '</h2></div><button class="iconBtn iconBtn--sm" type="button" data-close aria-label="Cerrar">' + ic("x") + "</button></div>";
   }
   function pfField(id, label, val, attrs) {
     return '<label class="pf-field"><span>' + label + '</span><input data-pf-f="' + id + '" value="' + esc(val || "") + '" ' + (attrs || "") + "></label>";
@@ -3327,17 +3352,16 @@
       h += '<button type="button" class="pf2-car pf2-car--new" data-pf="onboard"><span class="pf2-car-t"><small>Tu carrera</small><strong>Elegí tu carrera</strong><em>Te mostramos qué podés cursar y qué finales rendir.</em></span>' + ic("chev", "pf2-go") + "</button>";
     }
 
+    h += accountHtml();
     h += '<p class="pf-sec">Tus datos</p><div class="pf2-fields">' +
       pfField("legajo", "N° de alumno", p.legajo, 'inputmode="numeric" placeholder="12345/6" maxlength="12"') +
       pfField("dni", "DNI", p.dni, 'inputmode="numeric" placeholder="40123456" maxlength="10"') +
       pfField("mail", "Mail", p.mail, 'type="email" placeholder="vos@mail.com" autocomplete="email"') + "</div>" +
       '<p class="pf-note">' + ic("lock") + esc(dataNote()) + "</p>";
 
-    h += accountHtml();
-
     var cur = curPalette();
     h += '<p class="pf-sec">Más</p><div class="pf2-list">' +
-      '<button type="button" data-pf="colors">' + palPreview(cur) + "<span>Colores<small>" + esc(cur.name) + "</small></span>" + ic("chev") + "</button>" +
+      '<button type="button" data-pf="colors">' + palDots(cur) + "<span>Colores<small>" + esc(cur.name) + "</small></span>" + ic("chev") + "</button>" +
       (c && !u ? '<button type="button" data-pf="share">' + ic("share") + "<span>Pasar a otro dispositivo<small>Un link con tu plan</small></span>" + ic("chev") + "</button>" : "") +
       helpRows() + "</div></div>";
     return h;
@@ -3591,7 +3615,7 @@
           '<em class="ac-role ac-role--' + esc(p.role) + '">' + (p.role === "admin" ? "Admin" : "Organizador") + "</em>" +
           '<button type="button" class="tm-rm" data-tm-rm="' + esc(p.email) + '" aria-label="Sacarle el rol a ' + esc(p.email) + '"' + (tmUI.busy ? " disabled" : "") + ">" + ic("x") + "</button></div>";
       }).join("") + "</div>";
-    return mHead("Equipo", "Administración") +
+    return mHead("Equipo", "Administración", "users") +
       '<div data-team><p class="tm-hint">Organizadores editan avisos y fechas. Admins, además, manejan el equipo.</p>' +
       '<form class="tm-form" data-tm-form novalidate><label class="sr" for="tmMail">Mail de la cuenta</label><input id="tmMail" name="mail" type="email" autocomplete="off" placeholder="mail@de-la-cuenta.com" required>' +
       '<label class="sr" for="tmRole">Rol</label><select id="tmRole" name="role"><option value="organizador">Organizador</option><option value="admin">Admin</option></select>' +
@@ -3629,7 +3653,7 @@
   function authMailView() {
     var up = acUI.mode === "up", fg = acUI.mode === "forgot";
     var h = '<div class="au-brand" aria-hidden="true"><img class="brand-logo brand-logo--light" src="assets/logo-gradiente-azul.png" alt=""><img class="brand-logo brand-logo--dark" src="assets/logo-gradiente-blanco.png" alt=""></div>' +
-      mHead(fg ? "Recuperar contraseña" : up ? "Crear cuenta" : "Entrar", fg ? "Te mandamos un link a tu mail" : "Tu cuenta de Gradiente");
+      mHead(fg ? "Recuperar contraseña" : up ? "Crear cuenta" : "Entrar", fg ? "Te mandamos un link a tu mail" : "Tu cuenta de Gradiente", fg ? "key" : "user");
     if (!fg) h += '<div class="ac-tabs" role="tablist"><button type="button" role="tab" data-ac-mode="in" aria-selected="' + !up + '">Entrar</button><button type="button" role="tab" data-ac-mode="up" aria-selected="' + up + '">Crear cuenta</button></div>';
     h += '<form class="ac-form" data-ac-form novalidate>' +
       (up ? '<label class="ac-f"><span>Tu nombre</span><input name="name" autocomplete="given-name" maxlength="40" value="' + esc(S.name || "") + '"></label>' : "") +
@@ -3682,7 +3706,7 @@
   }
   function openNewPassword(fromMail) {
     openSheetAs("sheet--modal", function () {
-      return mHead(fromMail ? "Elegí una contraseña nueva" : "Cambiar contraseña", "Tu cuenta") +
+      return mHead(fromMail ? "Elegí una contraseña nueva" : "Cambiar contraseña", "Tu cuenta", "key") +
         '<form class="ac-form" data-ac-np novalidate><label class="ac-f"><span>Contraseña nueva</span><input name="pass" type="password" autocomplete="new-password" minlength="8" required data-autofocus><small>Mínimo 8 caracteres.</small></label>' +
         '<p class="ac-msg is-err" data-ac-np-msg hidden></p><button type="submit" class="btn btn--primary">Guardar contraseña</button></form>';
     });
@@ -3700,7 +3724,7 @@
   /* cerrar sesión: en una compu compartida conviene borrar lo de este dispositivo */
   function openSignOut() {
     openSheetAs("sheet--modal", function () {
-      return mHead("Cerrar sesión", "Tu plan queda guardado en tu cuenta") +
+      return mHead("Cerrar sesión", "Tu plan queda guardado en tu cuenta", "back") +
         '<p class="so-q">¿Qué hacemos con lo que hay en este dispositivo?</p><div class="so-opts">' +
         '<button type="button" class="so-opt so-opt--wipe" data-so="wipe"><span class="so-ic">' + ic("x") + "</span><span><strong>Borrar de acá</strong><small>Compu de la facu o prestada</small></span></button>" +
         '<button type="button" class="so-opt so-opt--keep" data-so="keep"><span class="so-ic">' + ic("check") + "</span><span><strong>Dejarlo acá</strong><small>Tu celu o tu compu</small></span></button></div>";
@@ -3816,7 +3840,7 @@
     if (grad.length) h += '<p class="pf-sec">De Gradiente</p><div class="nt2-grad">' + grad.map(function (n) {
       var a = n.av;
       return '<button type="button" class="nt2-av' + (isNew[n.id] ? " is-new" : "") + (a.pinned ? " is-pin" : "") + (n.st !== "on" ? " is-" + n.st : "") + '" data-av="' + esc(a.id) + '"' + st() + ">" +
-        (a.image ? '<span class="nt2-img"><img src="' + esc(a.image) + '" alt="" loading="lazy"></span>' : "") +
+        (a.image ? '<span class="nt2-img"><img src="' + esc(a.image) + '" alt="" loading="lazy"></span>' : '<span class="nt2-img nt2-img--ic" style="--nc:' + n.k.color + '">' + ic(n.k.icon) + "</span>") +
         '<span class="nt2-b"><span class="nt2-top">' + gradMark() + '<span class="nt2-kind" style="--nc:' + n.k.color + '">' + n.k.label + "</span>" +
         (a.pinned ? '<span class="nt2-pin" title="Fijado">' + ic("tack") + "</span>" : "") +
         (n.st === "prog" ? '<span class="nt2-st">Desde el ' + fmtShort(a.starts_on) + "</span>" : n.st === "old" ? '<span class="nt2-st">Vencido</span>' : "") +
@@ -3901,7 +3925,7 @@
     var f = a ? Object.assign({}, a) : { kind: "aviso", title: "", body: "", url: "", image: "", starts_on: today, ends_on: isoOf(addDays(new Date(), 7)), pinned: false };
     var ui2 = { busy: false, msg: "", blob: null, preview: f.image || "" };
     var view = function () {
-      return mHead(a ? "Editar aviso" : "Nuevo aviso", "Sale con la marca de Gradiente, sin tu nombre") +
+      return mHead(a ? "Editar aviso" : "Nuevo aviso", "Sale con la marca de Gradiente, sin tu nombre", a ? "edit" : "bell") +
         '<form class="ac-form av-form" data-av-form novalidate>' +
         '<div class="av-kinds" role="radiogroup" aria-label="Tipo">' + Object.keys(AV_KIND).map(function (key) {
           var k = AV_KIND[key]; return '<button type="button" role="radio" aria-checked="' + (f.kind === key) + '" data-av-kind="' + key + '" style="--nc:' + k.color + '">' + ic(k.icon) + k.label + "</button>";
