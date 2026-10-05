@@ -138,14 +138,17 @@
     var v = palVars(p);
     return '<span class="pal-dots" style="--b:' + v.bg + ";--a:" + v.red + ";--bl:" + v.blue + ";--ln:" + v.ln + '" aria-hidden="true"><i></i><i></i><i></i></span>';
   }
+  /* selector de paletas: oscuras o claras (una pestaña por vez) y una muestra simple de cada una */
+  var palUI = { tab: "" };
+  function palTile(p) { return '<span class="pal-tile" style="background:' + p.sw[0] + '" aria-hidden="true">' + p.sw.slice(1, 4).map(function (c) { return '<i style="background:' + c + '"></i>'; }).join("") + "</span>"; }
   function palGrid() {
-    var cur = curPalette();
-    var group = function (theme, label) {
-      return '<p class="pal-k">' + label + '</p><div class="pal-grid2">' + PALETTES.filter(function (p) { return p.theme === theme; }).map(function (p) {
-        return '<button type="button" class="pal-opt2" data-pal="' + p.id + '" aria-pressed="' + (p === cur) + '">' + palPreview(p) + '<span class="pal-nm">' + esc(p.name) + ic("check", "pal-ck") + "</span></button>";
-      }).join("") + "</div>";
-    };
-    return group("dark", "Oscuras") + group("light", "Claras") +
+    var cur = curPalette(), tab = palUI.tab || cur.theme;
+    return '<div class="pal-seg" role="group" aria-label="Tipo de paleta">' +
+      '<button type="button" data-pal-tab="dark" aria-pressed="' + (tab === "dark") + '">Oscuras</button>' +
+      '<button type="button" data-pal-tab="light" aria-pressed="' + (tab === "light") + '">Claras</button></div>' +
+      '<div class="pal-grid3">' + PALETTES.filter(function (p) { return p.theme === tab; }).map(function (p) {
+        return '<button type="button" class="pal-opt3" data-pal="' + p.id + '" aria-pressed="' + (p === cur) + '">' + palTile(p) + '<span class="pal-nm3">' + esc(p.name) + ic("check", "pal-ck") + "</span></button>";
+      }).join("") + "</div>" +
       '<button type="button" class="pal-demo' + (palDemo.t ? " is-on" : "") + '" data-pal-demo>' + ic(palDemo.t ? "check" : "palette") +
       "<span>" + (palDemo.t ? "Quedarme con esta" : "Probar todas") + "<small>" + (palDemo.t ? "Van cambiando cada 2 segundos" : "Cambian solas cada 2 segundos, sin guardar") + "</small></span></button>";
   }
@@ -156,13 +159,13 @@
       b.classList.toggle("is-on", !!palDemo.t);
       b.innerHTML = ic(palDemo.t ? "check" : "palette") + "<span>" + (palDemo.t ? "Quedarme con esta" : "Probar todas") + "<small>" + (palDemo.t ? "Van cambiando cada 2 segundos" : "Cambian solas cada 2 segundos") + "</small></span>";
     });
-    var m = $(".pal-sheet") && $(".dMeta", sheetBody); if (m) m.textContent = "Ahora: " + curPalette().name;
+    var box = $(".pal-sheet", sheetBody); if (box) box.innerHTML = palGrid();
     // sigue andando con el panel cerrado: un cartelito flotante dice cuál es y deja quedarse con ella
     var pill = $("#palDemoPill");
     if (!palDemo.t) { if (pill) pill.remove(); return; }
     if (!pill) {
       pill = document.createElement("div"); pill.id = "palDemoPill"; pill.className = "palPill";
-      pill.innerHTML = ic("palette") + '<span><small>Probando colores</small><b></b></span><button type="button" data-pal-demo>Quedarme</button>';
+      pill.innerHTML = ic("palette") + '<span><small>Probando paletas</small><b></b></span><button type="button" data-pal-demo>Quedarme</button>';
       document.body.appendChild(pill);
     }
     $("b", pill).textContent = curPalette().name;
@@ -1991,7 +1994,9 @@
 
   /* ---------------- onboarding tipo encuesta ---------------- */
   // sigla de la carrera para el botón: Computación → CO, Mecánica → ME, Energía Eléctrica → EE
+  function normQ(t) { return String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
   function careerMono(c) {
+    if (c.id === "electromecanica") return "EM"; // si no, queda igual que Electrónica
     var w = String(c.short || c.name || "").replace(/\(.*?\)/g, "").split(/\s+/).filter(function (x) { return x.length > 2; });
     return (w.length > 1 ? w[0][0] + w[1][0] : (w[0] || "?").slice(0, 2)).toUpperCase();
   }
@@ -2006,19 +2011,32 @@
       if (o.step === 0) return head + '<h2 class="h2 ob-q" id="sheetTitle">¿Cómo te llamás?</h2><p class="muted ob-sub">Para saludarte. Es opcional' + (acct() ? " y se guarda en tu cuenta." : " y queda solo en tu dispositivo.") + '</p>' +
         '<input class="ob-input" id="obName" type="text" maxlength="30" autocomplete="given-name" placeholder="Tu nombre" value="' + esc(o.name) + '" data-autofocus>' +
         '<div class="ob-actions"><button class="btn btn--ghost" type="button" data-ob="skip">Saltar</button><button class="btn btn--primary" type="button" data-ob="next">Seguir</button></div>';
-      if (o.step === 1) return head + '<h2 class="h2 ob-q" id="sheetTitle">' + (o.name ? esc(o.name) + ", ¿q" : "¿Q") + 'ué carrera estudiás?</h2><p class="muted ob-sub">Podés cambiarla cuando quieras.</p><div class="ob-grid">' +
-        DATA.plans.careers.map(function (c) { return '<button type="button" class="ob-opt ob-car' + (o.career === c.id ? " is-on" : "") + '" data-ob-career="' + c.id + '"><span class="ob-mono" aria-hidden="true">' + esc(careerMono(c)) + "</span><span>" + esc(c.short).replace("Telecomunicaciones", "Tele&shy;comunica&shy;ciones").replace("Electromecánica", "Electro&shy;mecánica") + "</span></button>"; }).join("") +
-        '</div><div class="ob-actions">' + (known ? "<span></span>" : '<button class="btn btn--ghost" type="button" data-ob="back">Atrás</button>') + '<button class="btn btn--primary" type="button" data-ob="next"' + (o.career ? "" : " disabled") + ">Seguir</button></div>";
+      if (o.step === 1) {
+        // lista con buscador: tocar elige, "Seguir" avanza
+        var cur = o.career && DATA.byId[o.career];
+        return head + '<h2 class="h2 ob-q" id="sheetTitle">' + (o.name ? esc(o.name) + ", ¿q" : "¿Q") + 'ué carrera estudiás?</h2><p class="muted ob-sub">Escribí o elegí de la lista. Podés cambiarla cuando quieras.</p>' +
+          '<label class="ob-srch">' + ic("search") + '<span class="sr">Buscar carrera</span><input id="obCarQ" type="search" autocomplete="off" placeholder="Buscar carrera"></label>' +
+          '<div class="ob-carlist" role="radiogroup" aria-label="Carrera">' +
+          DATA.plans.careers.map(function (c) { var on = o.career === c.id; return '<button type="button" role="radio" aria-checked="' + on + '" class="ob-row' + (on ? " is-on" : "") + '" data-ob-career="' + c.id + '" data-q="' + esc(normQ(c.short + " " + c.name)) + '"><span class="ob-mono" aria-hidden="true">' + esc(careerMono(c)) + "</span><b>" + esc(c.short) + '</b><i class="ob-rd" aria-hidden="true"></i></button>'; }).join("") +
+          '<p class="ob-none" hidden>No encontramos esa carrera.</p></div>' +
+          '<div class="ob-actions">' + (known ? "<span></span>" : '<button class="btn btn--ghost" type="button" data-ob="back">Atrás</button>') + '<button class="btn btn--primary" type="button" data-ob="next"' + (o.career ? "" : " disabled") + ">" + (cur ? "Seguir con " + esc(cur.short) : "Seguir") + "</button></div>";
+      }
       return head + '<h2 class="h2 ob-q" id="sheetTitle">¿Hasta dónde llegaste?</h2><p class="muted ob-sub">Marcamos como aprobadas las materias hasta ahí. Después ajustás lo que haga falta.</p><div class="ob-list">' +
         LEVELS.map(function (l) { return '<button type="button" class="ob-lvl' + (o.level === l[0] ? " is-on" : "") + (o.level !== null && o.level !== 99 && l[0] !== 99 && l[0] <= o.level ? " is-past" : "") + (l[0] === 99 ? " ob-lvl--own" : "") + '" data-ob-level="' + l[0] + '"><i aria-hidden="true"></i><span><strong>' + l[1] + "</strong>" + (l[2] ? "<small>" + l[2] + "</small>" : "") + "</span></button>"; }).join("") +
         '</div><div class="ob-actions"><button class="btn btn--ghost" type="button" data-ob="back">Atrás</button><button class="btn btn--primary" type="button" data-ob="finish"' + (o.level === null ? " disabled" : "") + ">Ver mi plan</button></div>";
     }
+    function filterCareers(v) {
+      var q = normQ(v), any = false;
+      $all(".ob-row", sheetBody).forEach(function (r) { var ok = !q || r.dataset.q.indexOf(q) >= 0; r.hidden = !ok; any = any || ok; });
+      var none = $(".ob-none", sheetBody); if (none) none.hidden = any;
+    }
     openSheet(render);
     sheet.classList.add("sheet--ob");
+    sheetBody.oninput = function (ev) { if (ev.target.id === "obCarQ") filterCareers(ev.target.value); };
     sheetBody.onclick = function (ev) {
       var t = ev.target.closest("button"); if (!t) return;
       var nameEl = $("#obName"); if (nameEl) o.name = nameEl.value.trim();
-      if (t.dataset.obCareer) { o.career = t.dataset.obCareer; o.step = 2; refreshSheet(); return; }
+      if (t.dataset.obCareer) { o.career = t.dataset.obCareer; var q = $("#obCarQ"), qv = q ? q.value : ""; refreshSheet(); q = $("#obCarQ"); if (q && qv) { q.value = qv; filterCareers(qv); } return; }
       if (t.dataset.obLevel != null) { o.level = +t.dataset.obLevel; refreshSheet(); return; }
       var a = t.dataset.ob;
       if (a === "skip") { o.name = ""; o.step = 1; }
@@ -2126,8 +2144,8 @@
     afcList(c).forEach(function (x) {
       var got = afcGot(c, x.c), cur = P[x.c];
       if (cur && !cur.af) return;
+      // las AFC no se cursan: con puntos a medias siguen pendientes (los puntos se ven en la tarjeta)
       if (got >= AFC_PTS) P[x.c] = { s: "a", af: 1 };
-      else if (got > 0) P[x.c] = { s: "c", af: 1 };
       else delete P[x.c];
     });
   }
@@ -2254,7 +2272,7 @@
     // el estado se cambia acá
     var opts = stOpts(x);
     h += '<p class="pf-sec">Tu estado</p><div class="statusSeg sj-seg" role="group" aria-label="Estado" style="grid-template-columns:repeat(' + opts.length + ',1fr)">' +
-      opts.map(function (o) { return '<button type="button" data-setst="' + o[0] + '" aria-pressed="' + (e.s === o[0]) + '" style="--sc:' + ST_COLOR[o[0]] + '"><i></i>' + o[1] + "</button>"; }).join("") + "</div>";
+      opts.map(function (o) { var si = { c: "clock", r: "spark", a: "check" }[o[0]]; return '<button type="button" data-setst="' + o[0] + '" aria-pressed="' + (e.s === o[0]) + '" style="--sc:' + ST_COLOR[o[0]] + '"><i>' + (si ? ic(si) : "") + "</i>" + o[1] + "</button>"; }).join("") + "</div>";
     if (x.k === "slot") h += '<button type="button" class="btn btn--sm dChange" data-chgpick>' + ic("edit") + (P.pick ? "Cambiar " : "Elegir ") + (x.pool === "hum" ? "humanística" : "optativa") + "</button>";
     if (e.s === "a" && !noGrade(x)) {
       h += '<p class="pf-sec">Tu nota' + (P.n ? ' <span class="pf2-sync">Promedio ' + fmtAvg(summary(c).avg) + "</span>" : "") + '</p><div class="gradeRow sj-grade">' + [4, 5, 6, 7, 8, 9, 10].map(function (n) { return '<button type="button" class="g-' + gradeTone(n) + '" data-grade="' + n + '" aria-pressed="' + (P.n === n) + '">' + n + "</button>"; }).join("") + "</div>";
@@ -2264,21 +2282,19 @@
     function chips(codes) {
       return '<div class="relChips">' + codes.map(function (r) {
         var st = stOf(c.id, r);
-        return '<button type="button" class="relChip" data-goto="' + esc(r) + '"><i class="dot is-' + ({ a: "aprobada", r: "regular", c: "cursando", p: "" })[st] + '"></i>' + esc(nameOf(c, r)) + "</button>";
+        return '<button type="button" class="relChip" data-goto="' + esc(r) + '" title="' + esc(nameOf(c, r)) + '"><i class="dot is-' + ({ a: "aprobada", r: "regular", c: "cursando", p: "" })[st] + '"></i><span class="rc-n">' + esc(nameOf(c, r)) + "</span></button>";
       }).join("") + "</div>";
     }
     var reqs = x.r || [];
     var un = (c.unlocks[x.c] || []).filter(function (u) { return c.byCode[u]; }).sort(function (a, b) { return (c.byCode[a].s || 99) - (c.byCode[b].s || 99); });
     if (reqs.length || x.x || un.length) {
-      h += '<p class="pf-sec">Correlativas</p><div class="sj-rel">';
-      if (reqs.length) h += '<div><p class="sj-rel-k">' + ic("back") + "Necesita</p>" + chips(reqs) + "</div>";
-      if (x.x) h += '<div><p class="sj-rel-k">' + ic("help") + "Condición</p><p class=\"sj-cond\">" + esc(x.x) + "</p></div>";
-      if (un.length) {
-        var SHOW = 6;
-        h += '<div><p class="sj-rel-k sj-rel-k--fw">Habilita' + ic("chev") + "</p>" + chips(un.slice(0, SHOW)) +
-          (un.length > SHOW ? '<details class="relMore"><summary>Ver ' + (un.length - SHOW) + " más</summary>" + chips(un.slice(SHOW)) + "</details>" : "") + "</div>";
-      }
-      h += "</div>";
+      // dos columnas: lo que necesita a la izquierda y lo que habilita a la derecha, dos de cada una y el resto plegado
+      var SHOW = 2, col = function (k, icon, codes, fw) {
+        return '<div class="sj-col"><p class="sj-rel-k' + (fw ? " sj-rel-k--fw" : "") + '">' + (fw ? k + ic(icon) : ic(icon) + k) + "</p>" +
+          (codes.length ? chips(codes.slice(0, SHOW)) + (codes.length > SHOW ? '<details class="relMore"><summary>+' + (codes.length - SHOW) + " más</summary>" + chips(codes.slice(SHOW)) + "</details>" : "") : '<p class="sj-cond">Nada</p>') + "</div>";
+      };
+      h += '<p class="pf-sec">Correlativas</p><div class="sj-rel sj-rel--2">' + col("Necesita", "back", reqs) + col("Habilita", "chev", un, true) +
+        (x.x ? '<div class="sj-col sj-col--full"><p class="sj-rel-k">' + ic("help") + "Condición</p><p class=\"sj-cond\">" + esc(x.x) + "</p></div>" : "") + "</div>";
     } else if (x.k !== "slot") h += '<p class="sj-none">' + ic("check") + "Sin correlativas: se puede cursar desde el principio.</p>";
 
     // atajos: apuntes, cátedra, aula virtual y plan oficial
@@ -2645,7 +2661,7 @@
   /* pomodoro: sigue corriendo aunque cierres la hoja. Reloj de tarjetitas que se dan vuelta con el tic tac,
      aviso con el sonido que elijas, notificación del sistema (si la permitís) y el tiempo en la pestaña.
      La primera vez se abre una configuración guiada de 3 pasos; después todo queda en Ajustes */
-  var PO_L = { focus: "Estudio", short: "Descanso", long: "Descanso largo" };
+  var PO_L = { focus: "Estudio", short: "Descanso", long: "Descanso XL" };
   var PO = { mode: "focus", left: null, run: false, end: 0, timer: null, done: 0, cfg: false, title: document.title, sec: -1, wiz: 0, digits: "" };
   function setTitle(t) { PO.title = t; if (!PO.run) document.title = t; }
   var PO_KEY = "gradiente.pomoCfg";
@@ -2797,9 +2813,11 @@
     var notifOk = "Notification" in window, denied = notifOk && Notification.permission === "denied";
     PO.digits = ("0" + Math.floor(s / 60)).slice(-2) + ("0" + (s % 60)).slice(-2);
     return toolHead("Pomodoro") + '<div class="pomo pomo--' + PO.mode + (PO.run ? " is-run" : "") + (fresh ? " is-burst" : "") + '">' +
-      '<div class="pomo-top"><div class="seg pomo-seg" role="group" aria-label="Modo">' + ["focus", "short", "long"].map(function (m) { return '<button type="button" data-pm="' + m + '" aria-pressed="' + (PO.mode === m) + '">' + PO_L[m] + "</button>"; }).join("") + "</div>" + muteBtn() + "</div>" +
-      '<div class="pomo-ring" style="--f:' + ((1 - s / tot) * 100).toFixed(2) + '"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="pr-t" cx="60" cy="60" r="52"/><circle class="pr-f" cx="60" cy="60" r="52" pathLength="100"/></svg>' +
-      '<div class="pomo-time"><span id="pomoFlip">' + flipClock(s) + '</span><span class="sr" id="pomoTime">' + mmss(s) + "</span><small>" + (PO.run ? PO_L[PO.mode] : s < tot ? "En pausa" : PO_L[PO.mode]) + "</small></div></div>" +
+      '<div class="pomo-top"><div class="seg pomo-seg" role="group" aria-label="Modo">' + ["focus", "short", "long"].map(function (m) { return '<button type="button" data-pm="' + m + '" aria-pressed="' + (PO.mode === m) + '">' + PO_L[m] + "</button>"; }).join("") + "</div></div>" +
+      // pantalla: el avance da la vuelta al cuadro de los números; el parlante va encima, como en un video
+      '<div class="pomo-ring pomo-sq" style="--f:' + ((1 - s / tot) * 100).toFixed(2) + '"><svg viewBox="0 0 300 180" aria-hidden="true"><path class="pr-t" d="M150 3H273A24 24 0 0 1 297 27V153A24 24 0 0 1 273 177H27A24 24 0 0 1 3 153V27A24 24 0 0 1 27 3Z"/><path class="pr-f" d="M150 3H273A24 24 0 0 1 297 27V153A24 24 0 0 1 273 177H27A24 24 0 0 1 3 153V27A24 24 0 0 1 27 3Z" pathLength="100"/></svg>' +
+      '<small class="pomo-lbl">' + (PO.run ? PO_L[PO.mode] : s < tot ? "En pausa" : PO_L[PO.mode]) + "</small>" + muteBtn() +
+      '<div class="pomo-time"><span id="pomoFlip">' + flipClock(s) + '</span><span class="sr" id="pomoTime">' + mmss(s) + "</span></div></div>" +
       '<div class="pomo-act"><button class="btn" type="button" data-pa="reset" aria-label="Reiniciar">' + ic("undo") + '</button><button class="btn btn--primary pomo-main" type="button" data-pa="' + (PO.run ? "pause" : "start") + '">' + (PO.run ? "Pausar" : s < tot ? "Seguir" : "Empezar") + "</button>" +
       '<button class="btn" type="button" data-pa="skip" aria-label="Saltar a lo siguiente">' + ic("chev") + "</button></div>" +
       '<p class="pomo-done"><span class="pomo-dots">' + [0, 1, 2, 3].map(function (i) { return '<i class="' + (i < PO.done % 4 || (PO.done && PO.done % 4 === 0) ? "on" : "") + '"></i>'; }).join("") + "</span>" +
@@ -3317,13 +3335,14 @@
   /* colores: botón propio al lado de la campana (también están en el perfil) */
   function openPalettes() {
     openSheetAs("sheet--modal", function () {
-      return mHead("Colores", "Ahora: " + curPalette().name, "palette") + '<div class="pal-sheet">' + palGrid() + "</div>";
+      return mHead("Paletas", "Ahora: " + curPalette().name, "palette") + '<div class="pal-sheet">' + palGrid() + "</div>";
     });
+    palUI.tab = "";
+    var redraw = function () { var box = $(".pal-sheet", sheetBody); if (box) box.innerHTML = palGrid(); var m = $(".dMeta", sheetBody); if (m) m.textContent = "Ahora: " + curPalette().name; };
     sheetBody.onclick = function (e) {
+      var t = e.target.closest("[data-pal-tab]"); if (t) { palUI.tab = t.dataset.palTab; redraw(); return; }
       var pal = e.target.closest("[data-pal]"); if (!pal) return;
-      pickPalette(pal.dataset.pal);
-      $all("[data-pal]", sheetBody).forEach(function (o) { o.setAttribute("aria-pressed", String(o.dataset.pal === curPalette().id)); });
-      var m = $(".dMeta", sheetBody); if (m) m.textContent = "Ahora: " + curPalette().name;
+      pickPalette(pal.dataset.pal); redraw();
     };
   }
   // encabezado común de los modales: título, bajada chica y la X
@@ -3361,7 +3380,7 @@
 
     var cur = curPalette();
     h += '<p class="pf-sec">Más</p><div class="pf2-list">' +
-      '<button type="button" data-pf="colors">' + palDots(cur) + "<span>Colores<small>" + esc(cur.name) + "</small></span>" + ic("chev") + "</button>" +
+      '<button type="button" data-pf="colors">' + palDots(cur) + "<span>Paletas<small>" + esc(cur.name) + "</small></span>" + ic("chev") + "</button>" +
       (c && !u ? '<button type="button" data-pf="share">' + ic("share") + "<span>Pasar a otro dispositivo<small>Un link con tu plan</small></span>" + ic("chev") + "</button>" : "") +
       helpRows() + "</div></div>";
     return h;
@@ -3608,20 +3627,22 @@
   }
   function teamView() {
     var me = (acct() || {}).email || "";
-    var rows = tmUI.list == null ? '<p class="tm-empty">Cargando…</p>' : !tmUI.list.length ? '<p class="tm-empty">Todavía no hay nadie más.</p>' :
-      '<div class="pf2-list tm-list">' + tmUI.list.map(function (p) {
+    var n = tmUI.list ? tmUI.list.length : 0;
+    var rows = tmUI.list == null ? '<p class="tm-empty">Cargando…</p>' : !n ? '<p class="tm-empty">Todavía no hay nadie más.</p>' :
+      '<div class="tm-list2">' + tmUI.list.map(function (p) {
         var self = String(p.email).toLowerCase() === me.toLowerCase(), nm = p.name || p.email;
-        return '<div class="tm-row"><span class="tm-av">' + esc(String(nm).trim().charAt(0).toUpperCase()) + "</span><span><strong>" + esc(nm) + (self ? " <small>(vos)</small>" : "") + "</strong><small>" + esc(p.email) + "</small></span>" +
+        return '<div class="tm-row tm-row--' + esc(p.role) + '"><span class="tm-av">' + esc(String(nm).trim().charAt(0).toUpperCase()) + "</span><span><strong>" + esc(nm) + (self ? " <small>(vos)</small>" : "") + "</strong><small>" + esc(p.email) + "</small></span>" +
           '<em class="ac-role ac-role--' + esc(p.role) + '">' + (p.role === "admin" ? "Admin" : "Organizador") + "</em>" +
-          '<button type="button" class="tm-rm" data-tm-rm="' + esc(p.email) + '" aria-label="Sacarle el rol a ' + esc(p.email) + '"' + (tmUI.busy ? " disabled" : "") + ">" + ic("x") + "</button></div>";
+          (self ? "" : '<button type="button" class="tm-rm" data-tm-rm="' + esc(p.email) + '" aria-label="Sacarle el rol a ' + esc(p.email) + '"' + (tmUI.busy ? " disabled" : "") + ">" + ic("x") + "</button>") + "</div>";
       }).join("") + "</div>";
     return mHead("Equipo", "Administración", "users") +
-      '<div data-team><p class="tm-hint">Organizadores editan avisos y fechas. Admins, además, manejan el equipo.</p>' +
-      '<form class="tm-form" data-tm-form novalidate><label class="sr" for="tmMail">Mail de la cuenta</label><input id="tmMail" name="mail" type="email" autocomplete="off" placeholder="mail@de-la-cuenta.com" required>' +
-      '<label class="sr" for="tmRole">Rol</label><select id="tmRole" name="role"><option value="organizador">Organizador</option><option value="admin">Admin</option></select>' +
-      '<button type="submit" class="btn btn--primary btn--sm"' + (tmUI.busy ? " disabled" : "") + ">Sumar</button></form>" +
+      '<div data-team><div class="tm-roles"><p><b>Organizador</b><small>Carga y edita avisos y fechas</small></p><p><b>Admin</b><small>Lo mismo y además maneja el equipo</small></p></div>' +
+      '<form class="tm-card" data-tm-form novalidate><p class="pf-sec">Sumar a alguien</p><label class="sr" for="tmMail">Mail de la cuenta</label><input class="tm-in" id="tmMail" name="mail" type="email" autocomplete="off" placeholder="mail@de-la-cuenta.com" required>' +
+      '<div class="tm-seg" role="radiogroup" aria-label="Rol"><label><input type="radio" name="role" value="organizador" checked><span>Organizador</span></label><label><input type="radio" name="role" value="admin"><span>Admin</span></label></div>' +
+      '<button type="submit" class="btn btn--primary"' + (tmUI.busy ? " disabled" : "") + ">" + (tmUI.busy ? "Guardando…" : "Sumar al equipo") + "</button>" +
+      '<p class="tm-hint tm-foot">Tiene que haber entrado una vez con su cuenta.</p></form>' +
       (tmUI.msg ? '<p class="ac-msg' + (tmUI.tone ? " is-" + tmUI.tone : "") + '" role="status">' + esc(tmUI.msg) + "</p>" : "") +
-      '<p class="pf-sec">Con rol</p>' + rows + '<p class="tm-hint tm-foot">La persona tiene que haber entrado una vez con su cuenta.</p></div>';
+      '<p class="pf-sec">Con rol' + (n ? " · " + n : "") + "</p>" + rows + "</div>";
   }
   function bindTeam() {
     var run = function (mail, r, okMsg) {
