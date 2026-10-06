@@ -140,14 +140,20 @@
   }
   /* selector de paletas: oscuras o claras (una pestaña por vez) y una muestra simple de cada una */
   var palUI = { tab: "" };
-  function palTile(p) { return '<span class="pal-tile" style="background:' + p.sw[0] + '" aria-hidden="true">' + p.sw.slice(1, 4).map(function (c) { return '<i style="background:' + c + '"></i>'; }).join("") + "</span>"; }
+  // fila: mini pantalla con el fondo real, nombre, sus colores y la marca de elegida
+  function palTile(p) {
+    var ink = p.theme === "dark" ? "#f3f3ff" : "#141735";
+    return '<span class="pal-pv2" style="background:' + p.sw[0] + '" aria-hidden="true"><i class="l1" style="background:' + ink + '"></i><i class="l2" style="background:' + ink + '"></i><i class="bt" style="background:' + p.sw[1] + '"></i><i class="dt" style="background:' + p.sw[3] + '"></i></span>';
+  }
   function palGrid() {
     var cur = curPalette(), tab = palUI.tab || cur.theme;
     return '<div class="pal-seg" role="group" aria-label="Tipo de paleta">' +
       '<button type="button" data-pal-tab="dark" aria-pressed="' + (tab === "dark") + '">Oscuras</button>' +
       '<button type="button" data-pal-tab="light" aria-pressed="' + (tab === "light") + '">Claras</button></div>' +
-      '<div class="pal-grid3">' + PALETTES.filter(function (p) { return p.theme === tab; }).map(function (p) {
-        return '<button type="button" class="pal-opt3" data-pal="' + p.id + '" aria-pressed="' + (p === cur) + '">' + palTile(p) + '<span class="pal-nm3">' + esc(p.name) + ic("check", "pal-ck") + "</span></button>";
+      '<div class="pal-rows" role="radiogroup" aria-label="Paleta">' + PALETTES.filter(function (p) { return p.theme === tab; }).map(function (p) {
+        return '<button type="button" role="radio" class="pal-row" data-pal="' + p.id + '" aria-checked="' + (p === cur) + '" aria-pressed="' + (p === cur) + '">' + palTile(p) +
+          '<span class="pal-row-n"><b>' + esc(p.name) + "</b><small>" + (p.theme === "dark" ? "Oscura" : "Clara") + '</small></span><span class="pal-row-sw" aria-hidden="true">' +
+          p.sw.slice(1).map(function (c) { return '<i style="background:' + c + '"></i>'; }).join("") + '</span><i class="pal-row-rd" aria-hidden="true"></i></button>';
       }).join("") + "</div>" +
       '<button type="button" class="pal-demo' + (palDemo.t ? " is-on" : "") + '" data-pal-demo>' + ic(palDemo.t ? "check" : "palette") +
       "<span>" + (palDemo.t ? "Quedarme con esta" : "Probar todas") + "<small>" + (palDemo.t ? "Van cambiando cada 2 segundos" : "Cambian solas cada 2 segundos, sin guardar") + "</small></span></button>";
