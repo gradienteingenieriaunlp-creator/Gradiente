@@ -3763,3 +3763,28 @@ button.cu-row:hover { background: color-mix(in srgb, var(--ink) 4%, transparent)
   .sheet.sheet--ob .sheet-panel { top: calc(12px + env(safe-area-inset-top)); transform: translateX(-50%); max-height: calc(100dvh - 24px - env(safe-area-inset-top)); animation-name: obTop; }
   @keyframes obTop { from { opacity: 0; transform: translate(-50%, 12px); } }
 }
+
+/* ---------- v15 · Bienvenida y tutorial de Mi plan ---------- */
+.wc-hero { position: relative; overflow: hidden; margin: -6px -6px 0; padding: 16px 16px 18px; border-radius: 18px; color: #fff; background: linear-gradient(135deg, #22357a, #0b1640 62%, #3a0d24); }
+.wc-hero::after { content: ""; position: absolute; right: -40px; top: -40px; width: 140px; height: 140px; border-radius: 50%; border: 16px solid rgba(225, 29, 72, .3); pointer-events: none; }
+.wc-k { position: relative; margin: 0; font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255, 255, 255, .7); }
+.wc-t { position: relative; margin: 8px 0 0; font-family: var(--display); font-style: italic; font-weight: 800; font-size: 34px; line-height: .95; text-transform: uppercase; }
+.wc-t span { color: #fb7185; }
+.wc-hero > p:not(.wc-k) { position: relative; margin: 8px 0 0; max-width: 270px; font-size: 13.5px; color: rgba(255, 255, 255, .82); }
+.wc-x { position: absolute !important; top: 10px; right: 10px; z-index: 1; background: rgba(255, 255, 255, .14); color: #fff; border-color: transparent; }
+.wc-btns { display: grid; gap: 8px; margin-top: 16px; }
+.wc-btns .btn { height: 50px; justify-content: center; gap: 10px; font-size: 15.5px; }
+.wc-btns .btn svg { width: 18px; height: 18px; }
+.wc-g { background: #fff; color: #1f1f1f; border-color: #fff; }
+.wc-skip { height: 44px; font-weight: 700; font-size: 15px; color: var(--muted); }
+.wc-skip:hover { color: var(--ink); }
+.wc-foot { margin: 6px 4px 0; font-size: 12px; line-height: 1.4; color: var(--muted); text-align: center; }
+@media (max-width: 759px) {
+  .sheet.sheet--welcome .sheet-panel { top: auto; bottom: calc(12px + env(safe-area-inset-bottom)); transform: translateX(-50%); animation-name: wcUp; }
+  @keyframes wcUp { from { opacity: 0; transform: translate(-50%, 24px); } }
+}
+.tip-steps { list-style: none; margin: 16px 0 18px; padding: 0; display: grid; gap: 16px; text-align: left; }
+.tip-steps li { display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: start; }
+.tip-steps b { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: 22px; color: #fff; background: var(--accent); }
+.tip-steps strong { display: block; font-size: 15.5px; }
+.tip-steps span { font-size: 13.5px; line-height: 1.4; color: var(--ink-2); }
