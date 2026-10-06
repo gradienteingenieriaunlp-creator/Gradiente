@@ -17,7 +17,7 @@ window.GRADIENTE = {
   // Con enabled: false la app anda como siempre, todo en el dispositivo.
   auth: {
     // proyecto Supabase "gradiente" (org Gradiente, São Paulo). Prender cuando estén las URLs de Auth configuradas.
-    enabled: false,
+    enabled: true,
     url: "https://ccvtjvvtjxllnaakniav.supabase.co",
     anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjdnRqdnZ0anhsbG5hYWtuaWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4MjQ3ODEsImV4cCI6MjEwNjQwMDc4MX0.P4FbicAmrCIhZ_WOPyh0RygbPA0pYGP0jVNyJ3d20yU"
   },
