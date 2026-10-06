@@ -3512,6 +3512,32 @@
       }
     };
   }
+
+  /* estadísticas (solo admins): totales de cuentas, sin nombres */
+  function openStats() {
+    var st = { d: null };
+    var tile = function (n, l, sub, hero) { return '<div' + (hero ? ' class="is-hero"' : "") + "><b>" + n + "</b><small>" + l + "</small>" + (sub ? '<em class="st-up">' + sub + "</em>" : "") + "</div>"; };
+    var view = function () {
+      var h = mHead("Estadísticas", "Solo admins", "plan"), d = st.d;
+      if (!d) return h + '<p class="tm-empty">Cargando…</p>';
+      var pct = d.cuentas ? Math.round(d.google / d.cuentas * 100) : 0;
+      h += '<div class="cu-stats st-tiles">' + tile(d.cuentas, d.cuentas === 1 ? "cuenta creada" : "cuentas creadas", d.nuevas_7d ? "+" + d.nuevas_7d + " esta semana" : "", true) +
+        tile(d.activos_7d, "activos en los últimos 7 días") + tile(d.con_plan, "eligieron carrera y marcaron materias") + tile(pct + "%", "entraron con Google · " + d.mail + " con mail") + "</div>";
+      var W = d.semanas || [], mx = W.reduce(function (m, w) { return Math.max(m, w.n); }, 1);
+      h += '<p class="pf-sec">Cuentas nuevas por semana</p><div class="st-bars">' + W.map(function (w, i) {
+        var dd = dateOf(w.desde);
+        return '<span class="' + (i === W.length - 1 ? "is-now" : "") + '"><small>' + w.n + '</small><i style="height:' + Math.max(3, Math.round(w.n / mx * 92)) + 'px"></i><em>' + dd.getDate() + "/" + (dd.getMonth() + 1) + "</em></span>";
+      }).join("") + "</div>";
+      var C = d.carreras || [], cm = C.reduce(function (m, c) { return Math.max(m, c.n); }, 1);
+      h += '<p class="pf-sec">Por carrera</p>' + (C.length ? '<div class="st-cars">' + C.map(function (c) {
+        return '<span><b>' + esc((DATA.byId[c.career] || {}).short || c.career) + '</b><i><u style="width:' + (c.n / cm * 100).toFixed(0) + '%"></u></i><b>' + c.n + "</b></span>";
+      }).join("") + "</div>" : '<p class="tm-empty">Todavía nadie eligió carrera.</p>');
+      return h + '<p class="tm-hint tm2-foot">Solo cuentas: quien usa la página sin cuenta no aparece.</p>';
+    };
+    openSheetAs("sheet--modal", view);
+    ensurePlans().then(function () { return GA.rpc("admin_stats"); }).then(function (d) { st.d = d; refreshSheet(); })
+      .catch(function (e) { toast(GA.errorText(e)); closeSheet(); });
+  }
   /* registro de cambios (solo admins): lo llena la base sola, nadie lo puede editar */
   var LOG_T = { avisos: "Avisos", kiosco: "Mesita", links: "Links", faq: "Preguntas", catedras: "Cátedras", user_roles: "Equipo" };
   var LOG_A = { crear: ["agregó", "#34d399"], editar: ["editó", "#60a5fa"], borrar: ["borró", "#fb7185"] };
@@ -4003,7 +4029,7 @@
       row("ed-faq", "chat", "#a78bfa", "Preguntas frecuentes", "Las respuestas del chat de Ayuda") +
       row("ed-cat", "building", "#34d399", "Cátedras", "Página y mail de cada materia") +
       row("team", "users", "#818cf8", "Equipo", GA.role() === "admin" ? "Quién es organizador o admin" : "Quiénes están en el equipo") +
-      (isAdmin() ? row("log", "clock", "#94a3b8", "Registro de cambios", "Quién cambió qué y cuándo · solo admins") : "") + "</div>" +
+      (isAdmin() ? row("stats", "plan", "#22d3ee", "Estadísticas", "Cuentas, activos y carreras · solo admins") + row("log", "clock", "#94a3b8", "Registro de cambios", "Quién cambió qué y cuándo · solo admins") : "") + "</div>" +
       (isAdmin() ? "" : '<p class="tm-hint tm2-foot">Podés agregar, editar y ocultar. Borrar para siempre es de los admins.</p>');
   }
   function helpRows() {
@@ -4028,6 +4054,7 @@
     else if (a === "ed-links") openEditor("links");
     else if (a === "log") openLog();
     else if (a === "cursan") openCursan();
+    else if (a === "stats") openStats();
     else if (a === "ed-faq") openEditor("faq");
     else if (a === "ed-cat") openEditor("cat");
     else if (a === "out") openSignOut(b);
