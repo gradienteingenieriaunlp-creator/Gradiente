@@ -3659,3 +3659,26 @@ h2.nos-t { font-family: var(--display); font-weight: 700; font-size: clamp(30px,
 .profPic.has-photo { width: 100%; height: 100%; }
 .profPic img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 .profBtn:has(.has-photo) { border-radius: 50%; padding: 3px; overflow: hidden; }
+
+/* ---------- v11 · Mesita editable por el equipo ---------- */
+.ki-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 18px 0 4px; padding: 10px 12px; border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-2)); border: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent); }
+.ki-bar > span { flex: 1 1 100%; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+.ki-bar > span svg { width: 15px; height: 15px; color: var(--accent); }
+.ki-bar .btn { gap: 4px; }
+.ki-bar .btn svg { width: 14px; height: 14px; }
+.kit, .product { position: relative; }
+.ki-edit { position: absolute; top: 8px; right: 8px; z-index: 4; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent); color: #fff; box-shadow: 0 6px 16px -6px rgba(0, 0, 0, .6); }
+.ki-edit svg { width: 16px; height: 16px; }
+.ki-flag { position: absolute; top: 12px; left: 10px; z-index: 4; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; background: #111; color: #fff; }
+.is-hidden { opacity: .55; }
+.ki-form .pal-seg { margin-bottom: 4px; }
+.ki-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ki-price { display: flex; align-items: center; gap: 4px; }
+.ki-price b { font-weight: 800; color: var(--muted); }
+.ki-price input { flex: 1; min-width: 0; }
+.ki-ord input { max-width: 120px; }
+.ki-bar > span { display: block; line-height: 1.4; }
+.ki-bar > span svg { display: inline-block; vertical-align: -3px; margin-right: 4px; }
+.kit .ki-edit { z-index: 6; }

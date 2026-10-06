@@ -620,16 +620,30 @@
         .sort(function (a, b) { return (a.priority || 99) - (b.priority || 99); });
     }).catch(function () { DATA.links = []; });
   }
-  function ensureKiosco() {
-    if (DATA.kiosco) return Promise.resolve();
-    // precios: siempre la versión recién subida (el navegador o Vercel pueden tener guardada una vieja)
-    return getJSON(CFG.data.kiosco + (CFG.data.kiosco.indexOf("?") < 0 ? "?" : "&") + "t=" + Math.floor(Date.now() / 6e5)).then(function (k) {
-      var by = function (a, b) { return (a.priority || 99) - (b.priority || 99); };
-      DATA.kiosco = {
-        promos: (k.promos || []).filter(function (p) { return p.active !== false; }).sort(by),
-        productos: (k.productos || []).filter(function (p) { return p.active !== false; }).sort(by)
-      };
-    }).catch(function () { DATA.kiosco = { promos: [], productos: [] }; });
+  /* mesita: sale de Supabase (la edita el equipo desde la página); si no responde, del data/kiosco.json de respaldo */
+  function fmtPrice(n) { return "$" + Number(n || 0).toLocaleString("es-AR"); }
+  function kioscoFromRows(rows) {
+    var by = function (a, b) { return (a.priority || 99) - (b.priority || 99); };
+    var map = function (r) {
+      return { id: r.id, kind: r.kind, title: r.name, name: r.name, priceN: r.price, price: fmtPrice(r.price), items: r.items || [], label: r.label || "", category: r.category || "",
+        description: r.description || "", image: r.image || "", stock: r.in_stock ? "disponible" : "agotado", active: r.active, priority: r.priority, row: r };
+    };
+    return { promos: rows.filter(function (r) { return r.kind === "kit"; }).map(map).sort(by), productos: rows.filter(function (r) { return r.kind !== "kit"; }).map(map).sort(by), live: true };
+  }
+  function ensureKiosco(force) {
+    if (DATA.kiosco && !force) return Promise.resolve();
+    var fromJson = function () {
+      // precios: siempre la versión recién subida (el navegador o Vercel pueden tener guardada una vieja)
+      return getJSON(CFG.data.kiosco + (CFG.data.kiosco.indexOf("?") < 0 ? "?" : "&") + "t=" + Math.floor(Date.now() / 6e5)).then(function (k) {
+        var by = function (a, b) { return (a.priority || 99) - (b.priority || 99); };
+        DATA.kiosco = {
+          promos: (k.promos || []).filter(function (p) { return p.active !== false; }).sort(by),
+          productos: (k.productos || []).filter(function (p) { return p.active !== false; }).sort(by)
+        };
+      }).catch(function () { DATA.kiosco = { promos: [], productos: [] }; });
+    };
+    if (!GA.kiosco) return fromJson();
+    return GA.kiosco().then(function (rows) { if (!rows || !rows.length) return fromJson(); DATA.kiosco = kioscoFromRows(rows); }).catch(fromJson);
   }
   function loading() { main.innerHTML = '<div class="wrap page"><p class="muted">Cargando…</p></div>'; }
   function failed(err) { main.innerHTML = '<div class="wrap page"><div class="card emptyState"><p><strong>No pudimos cargar los datos.</strong></p><p class="small">Revisá tu conexión y recargá la página.</p></div></div>'; console.error(err); }
@@ -3193,28 +3207,39 @@
   function kitCard(p, items) {
     var m = String(p.title || "").match(/\d+/), n = m ? m[0] : "";
     var name = n ? String(p.title).replace(/^kit\s*/i, "").replace(n, "").trim() : p.title;
-    return '<article class="kit rise">' + (n ? '<span class="kit-n" aria-hidden="true">' + n + "</span>" : "") +
+    return '<article class="kit rise' + (p.active === false ? " is-hidden" : "") + '">' + kiEdit(p) + (n ? '<span class="kit-n" aria-hidden="true">' + n + "</span>" : "") +
       '<div class="kit-art" aria-hidden="true">' + (p.badge ? '<span class="kit-badge">' + esc(p.badge) + "</span>" : "") + kitArt(items) + "</div>" +
       '<div class="kit-b"><p class="kit-k">Kit</p><h3 class="kit-t">' + (n ? "<b>" + n + "</b> " : "") + esc(name) + "</h3>" +
       (items.length ? '<ul class="kit-items' + (items.length > 4 ? " is-cols" : "") + '">' + items.map(function (it) { return "<li>" + esc(it) + "</li>"; }).join("") + "</ul>" : "") +
       '<div class="kit-foot"><span class="kit-price">' + esc(p.price) + '</span><span class="kit-seal" aria-label="' + esc(p.label || "Kit Gradiente") + '">' + ic("nabla") + "<small>" + esc(p.label || "Kit Gradiente") + "</small></span></div>" +
       '<p class="kit-pick">' + ic("pin") + "Retirás en la mesita · Electro</p></div></article>";
   }
+  function kiStaff() { return isStaff() && DATA.kiosco && DATA.kiosco.live; }
+  function kiEdit(p) { return kiStaff() && p.id ? '<button type="button" class="ki-edit" data-ki-edit="' + esc(p.id) + '" aria-label="Editar ' + esc(p.name || p.title) + '">' + ic("edit") + "</button>" + (p.active === false ? '<span class="ki-flag">Oculto</span>' : "") : ""; }
+  function kiFind(id) { var K = DATA.kiosco || { promos: [], productos: [] }; return K.promos.concat(K.productos).filter(function (x) { return x.id === id; })[0]; }
   function renderMesita() {
     if (!DATA.kiosco) loading();
-    return ensureKiosco().then(function () {
+    var fresh = isStaff() && !(DATA.kiosco && DATA.kiosco.staff);
+    return ensureKiosco(fresh).then(function () {
+      if (fresh && DATA.kiosco) DATA.kiosco.staff = true;
       var K = DATA.kiosco;
       var cats = []; K.productos.forEach(function (p) { if (p.category && cats.indexOf(p.category) < 0) cats.push(p.category); });
       var html = '<div class="wrap page"><header class="shopHead"><h1 class="h1">Mesita en Electro</h1><p class="shopHead-sub">Librería a precio estudiante</p>' +
         '<p class="shopHead-p">Kits de cuadernos y útiles sueltos. Pasá a buscar el tuyo por la mesita de Gradiente, en el edificio de Electro.</p></header>';
       if (K.promos.length) html += '<div class="kits" id="kits">' + K.promos.map(function (p) { return promoCard(p, false); }).join("") + "</div>" +
         (K.promos.length > 1 ? '<div class="kits-dots" aria-hidden="true">' + K.promos.map(function (p, i) { return "<i" + (i ? "" : ' class="is-on"') + "></i>"; }).join("") + "</div>" : "");
+      if (kiStaff()) html += '<div class="ki-bar"><span>' + ic("edit") + "<b>Modo equipo</b> · tocá el lápiz para editar o cambiar precios</span>" +
+        '<button type="button" class="btn btn--sm" data-ki-new="kit">' + ic("plus") + 'Kit</button><button type="button" class="btn btn--sm btn--primary" data-ki-new="producto">' + ic("plus") + "Producto</button></div>";
       html += '<div class="sectionHead"><h2 class="h2">Productos</h2></div>';
       if (cats.length > 1) html += '<div class="chipsRow" role="group" aria-label="Categorías"><button class="chip" type="button" data-shop="all" aria-pressed="' + (shopCat === "all") + '">Todo</button>' + cats.map(function (c) { return '<button class="chip" type="button" data-shop="' + esc(c) + '" aria-pressed="' + (shopCat === c) + '">' + esc(c) + "</button>"; }).join("") + "</div>";
       html += '<div class="shopGrid" id="shopGrid"></div>' + footer() + "</div>";
       main.innerHTML = html;
       $all("[data-shop]", main).forEach(function (b) { b.onclick = function () { shopCat = b.dataset.shop; $all("[data-shop]", main).forEach(function (o) { o.setAttribute("aria-pressed", String(o === b)); }); paintShop(); }; });
       paintShop();
+      main.onclick = function (e) {
+        var ed = e.target.closest("[data-ki-edit]"); if (ed) { openKioscoForm(kiFind(ed.dataset.kiEdit)); return; }
+        var nw = e.target.closest("[data-ki-new]"); if (nw) openKioscoForm(null, nw.dataset.kiNew);
+      };
       // celu: los kits van en fila deslizable; los puntitos marcan cuál se ve
       var row = $("#kits"), dots = $all(".kits-dots i", main);
       if (row && dots.length) row.addEventListener("scroll", function () {
@@ -3222,6 +3247,71 @@
         dots.forEach(function (d, j) { d.classList.toggle("is-on", j === k); });
       }, { passive: true });
     }).catch(failed);
+  }
+  /* el equipo agrega, edita, oculta o borra kits y productos de la mesita */
+  function openKioscoForm(it, kind) {
+    var r = it ? Object.assign({}, it.row) : { kind: kind || "producto", name: "", price: 0, category: "", description: "", items: [], label: kind === "kit" ? "Kit Gradiente" : "", image: "", in_stock: true, active: true, priority: 50 };
+    var ui2 = { busy: false, msg: "", blob: null, preview: r.image || "", del: false };
+    var cats = []; ((DATA.kiosco || {}).productos || []).forEach(function (p) { if (p.category && cats.indexOf(p.category) < 0) cats.push(p.category); });
+    var view = function () {
+      var kit = r.kind === "kit";
+      return mHead(it ? "Editar " + (kit ? "kit" : "producto") : kit ? "Nuevo kit" : "Nuevo producto", "Mesita en Electro", "shop") +
+        '<form class="ac-form ki-form" data-ki-form novalidate>' +
+        (it ? "" : '<div class="pal-seg" role="group" aria-label="Tipo"><button type="button" data-ki-kind="producto" aria-pressed="' + !kit + '">Producto</button><button type="button" data-ki-kind="kit" aria-pressed="' + kit + '">Kit</button></div>') +
+        '<label class="ac-f"><span>Nombre</span><input name="name" maxlength="80" required value="' + esc(r.name) + '" placeholder="' + (kit ? "Kit 2 cuadernos" : "Lapicera") + '"></label>' +
+        '<div class="ki-two"><label class="ac-f"><span>Precio</span><span class="ki-price"><b>$</b><input name="price" type="number" inputmode="numeric" min="0" step="50" value="' + (r.price || "") + '" placeholder="0"></span></label>' +
+        (kit ? '<label class="ac-f"><span>Sello</span><input name="label" maxlength="40" value="' + esc(r.label || "") + '" placeholder="Kit Gradiente"></label>'
+          : '<label class="ac-f"><span>Categoría</span><input name="category" maxlength="40" list="kiCats" value="' + esc(r.category || "") + '" placeholder="Librería"><datalist id="kiCats">' + cats.map(function (c) { return '<option value="' + esc(c) + '">'; }).join("") + "</datalist></label>") + "</div>" +
+        (kit ? '<label class="ac-f"><span>Qué trae <small>(uno por renglón)</small></span><textarea name="items" rows="4" placeholder="2 cuadernos A4&#10;1 lapicera">' + esc((r.items || []).join("\n")) + "</textarea></label>"
+          : '<label class="ac-f"><span>Descripción <small>(opcional)</small></span><input name="description" maxlength="300" value="' + esc(r.description || "") + '" placeholder="Llevando 2: $7.000"></label>') +
+        '<div class="ac-f"><span>Foto <small>(opcional; si no, va un dibujito)</small></span><label class="av-photo' + (ui2.preview ? " has-img" : "") + '">' +
+        (ui2.preview ? '<img src="' + esc(ui2.preview) + '" alt="">' : ic("image") + "<small>Elegí una imagen</small>") + '<input type="file" accept="image/*" data-ki-file hidden></label>' +
+        (ui2.preview ? '<button type="button" class="pf2-mini" data-ki-noimg>Sacar foto</button>' : "") + "</div>" +
+        '<label class="av-pinrow"><input type="checkbox" name="in_stock"' + (r.in_stock !== false ? " checked" : "") + ">" + ic("check") + "<span>Hay stock</span></label>" +
+        '<label class="av-pinrow"><input type="checkbox" name="active"' + (r.active !== false ? " checked" : "") + ">" + ic("eye") + "<span>Se ve en la página</span></label>" +
+        '<label class="ac-f ki-ord"><span>Orden <small>(más chico, más arriba)</small></span><input name="priority" type="number" inputmode="numeric" value="' + (r.priority == null ? 50 : r.priority) + '"></label>' +
+        (ui2.msg ? '<p class="ac-msg is-err" role="status">' + esc(ui2.msg) + "</p>" : "") +
+        '<button type="submit" class="btn btn--primary"' + (ui2.busy ? " disabled" : "") + ">" + (ui2.busy ? "Guardando…" : it ? "Guardar cambios" : "Agregar") + "</button>" +
+        (it ? '<button type="button" class="btn av-del' + (ui2.del ? " is-armed" : "") + '" data-ki-del>' + ic("trash") + (ui2.del ? "Tocá de nuevo para borrarlo" : "Borrar") + "</button>" : "") + "</form>";
+    };
+    var keep = function () {
+      var f = $("[data-ki-form]", sheetBody); if (!f) return;
+      r.name = f.elements.name.value; r.price = Math.max(0, Math.round(+f.elements.price.value || 0)); r.priority = Math.round(+f.elements.priority.value || 0);
+      if (f.elements.label) r.label = f.elements.label.value;
+      if (f.elements.category) r.category = f.elements.category.value;
+      if (f.elements.description) r.description = f.elements.description.value;
+      if (f.elements.items) r.items = f.elements.items.value.split("\n").map(function (x) { return x.trim(); }).filter(Boolean);
+      r.in_stock = f.elements.in_stock.checked; r.active = f.elements.active.checked;
+    };
+    var done = function (msg) { toast(msg); closeSheet(); ensureKiosco(true).then(function () { if (DATA.kiosco) DATA.kiosco.staff = true; if (ui.lastRoute === "mesita") renderMesita(); }); };
+    openSheetAs("sheet--modal", view);
+    sheetBody.onclick = function (e) {
+      var kb = e.target.closest("[data-ki-kind]"); if (kb) { keep(); r.kind = kb.dataset.kiKind; if (r.kind === "kit" && !r.label) r.label = "Kit Gradiente"; refreshSheet(); return; }
+      if (e.target.closest("[data-ki-noimg]")) { keep(); ui2.blob = null; ui2.preview = ""; r.image = ""; refreshSheet(); return; }
+      var d = e.target.closest("[data-ki-del]"); if (!d) return;
+      if (!ui2.del) { keep(); ui2.del = true; refreshSheet(); setTimeout(function () { if (!ui2.del) return; ui2.del = false; if ($("[data-ki-del]", sheetBody)) { keep(); refreshSheet(); } }, 5000); return; }
+      d.disabled = true;
+      GA.deleteKiosco(it.row).then(function () { done("Lo sacamos de la mesita."); }).catch(function (err) { d.disabled = false; toast(GA.errorText(err)); });
+    };
+    sheetBody.onchange = function (e) {
+      if (!e.target.hasAttribute("data-ki-file")) return;
+      keep();
+      shrinkImage(e.target.files[0], 900).then(function (b) { ui2.blob = b; ui2.preview = URL.createObjectURL(b); ui2.msg = ""; refreshSheet(); })
+        .catch(function (err) { ui2.msg = err.message; refreshSheet(); });
+    };
+    sheetBody.onsubmit = function (e) {
+      if (!e.target.closest("[data-ki-form]")) return;
+      e.preventDefault(); keep();
+      r.name = String(r.name || "").trim();
+      if (r.name.length < 2) { ui2.msg = "Poné un nombre."; refreshSheet(); return; }
+      if (r.kind === "kit" && !r.items.length) { ui2.msg = "Contá qué trae el kit (uno por renglón)."; refreshSheet(); return; }
+      ui2.busy = true; ui2.msg = ""; refreshSheet();
+      (ui2.blob ? GA.uploadAvisoImage(ui2.blob) : Promise.resolve(r.image || null)).then(function (img) {
+        var old = it && it.row.image; r.image = img;
+        return GA.saveKiosco(r).then(function () { if (old && old !== img && GA.removeAvisoImage) GA.removeAvisoImage(old); });
+      }).then(function () { done(it ? "Guardado." : "¡Agregado a la mesita!"); })
+        .catch(function (err) { ui2.busy = false; ui2.msg = GA.errorText(err); refreshSheet(); });
+    };
   }
   /* dibujito del producto mientras no tenga foto (kiosco.json > image la reemplaza) */
   function prodArt(p) {
@@ -3242,7 +3332,7 @@
     $("#shopGrid").innerHTML = list.map(function (p) {
       var out = p.stock && p.stock !== "disponible";
       var img = p.image ? '<img src="' + esc(p.image) + '" alt="" loading="lazy">' : prodArt(p);
-      return '<div class="product rise' + (out ? " is-out" : "") + '"><div class="product-img' + (p.image ? " has-photo" : "") + '">' + img + '<span class="cat">' + esc(p.category || "") + "</span></div>" +
+      return '<div class="product rise' + (out ? " is-out" : "") + (p.active === false ? " is-hidden" : "") + '">' + kiEdit(p) + '<div class="product-img' + (p.image ? " has-photo" : "") + '">' + img + '<span class="cat">' + esc(p.category || "") + "</span></div>" +
         '<div class="product-b"><strong>' + esc(p.name) + "</strong><p>" + esc(p.description || "") + '</p><div class="product-foot"><span class="price">' + esc(p.price) + '</span><span class="stock' + (out ? " is-out" : "") + '">' + (out ? "Sin stock" : "Disponible") + "</span></div></div></div>";
     }).join("") || '<p class="muted">Pronto cargamos productos.</p>';
     stagger($("#shopGrid"));
