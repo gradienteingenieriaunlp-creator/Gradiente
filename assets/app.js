@@ -610,15 +610,32 @@
     return Promise.all([
       getJSON(CFG.data.planes).then(function (d) { prepPlans(d); mergeShared(); }),
       getJSON(CFG.data.nube).then(function (n) { DATA.nube = n; }).catch(function () {}),
-      CFG.data.catedras ? getJSON(CFG.data.catedras).then(function (k) { DATA.catedras = k.c || {}; DATA.catedrasBase = k.base; }).catch(function () {}) : null
+      CFG.data.catedras ? getJSON(CFG.data.catedras).then(function (k) { DATA.catedras = k.c || {}; DATA.catedrasBase = k.base; return loadCatFixes(); }).catch(function () {}) : null
     ]);
   }
-  function ensureLinks() {
-    if (DATA.links) return Promise.resolve();
-    return getJSON(CFG.data.links).then(function (list) {
-      DATA.links = list.filter(function (l) { return l.active !== false && l.url && l.url !== "#" && l.url.charAt(0) !== "/"; })
-        .sort(function (a, b) { return (a.priority || 99) - (b.priority || 99); });
-    }).catch(function () { DATA.links = []; });
+  /* correcciones de cátedras que carga el equipo (Supabase), encima de data/catedras.json */
+  var CAT_JSON = null;
+  function loadCatFixes() {
+    if (!GA.rows || !DATA.catedras) return Promise.resolve();
+    if (!CAT_JSON) CAT_JSON = JSON.parse(JSON.stringify(DATA.catedras));
+    return GA.rows("catedras", "code,page,mail,updated_at", "code").then(function (rows) {
+      var c = JSON.parse(JSON.stringify(CAT_JSON));
+      (rows || []).forEach(function (r) { var o = c[r.code] || {}; if (r.page) o.p = r.page; o.m = r.mail || ""; if (!o.m) delete o.m; c[r.code] = o; });
+      DATA.catedras = c; DATA.catFixes = rows || [];
+    }).catch(function () {});
+  }
+  /* links: salen de Supabase (los edita el equipo); si no responde, de data/links.json */
+  var LINK_COLS = "id,title,label,url,category,description,tags,audience,priority,active,updated_at";
+  function linkFromRow(r) { return { id: r.id, title: r.title, label: r.label || "", url: r.url, category: r.category, desc: r.description || "", tags: r.tags || [], audience: r.audience || [], priority: r.priority, active: r.active, row: r }; }
+  function ensureLinks(force) {
+    if (DATA.links && !force) return Promise.resolve();
+    var keep = function (list) {
+      DATA.linksAll = list.slice().sort(function (a, b) { return (a.priority || 99) - (b.priority || 99); });
+      DATA.links = DATA.linksAll.filter(function (l) { return l.active !== false && l.url && l.url !== "#" && l.url.charAt(0) !== "/"; });
+    };
+    var fromJson = function () { return getJSON(CFG.data.links).then(keep).catch(function () { DATA.links = []; DATA.linksAll = []; }); };
+    if (!GA.rows) return fromJson();
+    return GA.rows("links", LINK_COLS).then(function (rows) { if (!rows || !rows.length) return fromJson(); DATA.linksLive = true; keep(rows.map(linkFromRow)); }).catch(fromJson);
   }
   /* mesita: sale de Supabase (la edita el equipo desde la página); si no responde, del data/kiosco.json de respaldo */
   function fmtPrice(n) { return "$" + Number(n || 0).toLocaleString("es-AR"); }
@@ -662,12 +679,19 @@
   }
   function ensureFaq() {
     if (DATA.faq) return Promise.resolve();
-    return getJSON(CFG.data.faq || "data/faq.json").then(prepFaq).catch(function () { DATA.faq = { topics: [], items: [], byId: {} }; });
+    return getJSON(CFG.data.faq || "data/faq.json").then(function (f) {
+      if (!GA.rows) return prepFaq(f);
+      // las respuestas salen de Supabase (las edita el equipo); los temas siguen en el json
+      return GA.rows("faq", FAQ_COLS).then(function (rows) {
+        if (rows && rows.length) { DATA.faqLive = true; DATA.faqAll = rows; f.items = rows.filter(function (r) { return r.active !== false; }).map(function (r) { return { id: r.id, topic: r.topic, q: r.q, a: r.a, k: r.k || [], links: r.links || [], top: r.top || 0 }; }); }
+        prepFaq(f);
+      }).catch(function () { prepFaq(f); });
+    }).catch(function () { DATA.faq = { topics: [], items: [], byId: {} }; });
   }
 
   function renderHome() {
     if (!DATA.plans || !DATA.links) loading();
-    return Promise.all([ensurePlans(), ensureLinks(), ensureFaq(), ensureFechas(), ensureIg()]).then(function () {
+    return Promise.all([ensurePlans(), ensureLinks(), ensureFaq(), ensureFechas(), ensureIg(), ensureAvisos().catch(function () {})]).then(function () {
       var c = career(), d = new Date();
       var avisos = DATA.links.filter(function (l) { return l.category === "Avisos"; });
       var cur = c ? c.courses.filter(function (x) { return stOf(c.id, x.c) === "c"; }).length : 0;
@@ -886,8 +910,15 @@
   function dateOf(iso) { var p = iso.split("-"); return new Date(+p[0], p[1] - 1, +p[2]); }
   function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return x; }
   function monday(d) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); return addDays(x, -((x.getDay() + 6) % 7)); }
+  /* los avisos de Gradiente con "marcar en el calendario" se suman a las fechas oficiales */
+  var AV_CAL = { paro: "paro", evento: "evento", aviso: "aviso", tramite: "aviso" };
+  function avisosCal() {
+    return (DATA.avisos || []).filter(function (a) { return a.in_cal !== false && a.starts_on; }).map(function (a) {
+      return { d: a.starts_on, h: a.ends_on || a.starts_on, t: a.title, k: AV_CAL[a.kind] || "aviso", n: "", url: "", g: 1, av: a.id };
+    });
+  }
   function eventsOn(iso) {
-    return (DATA.fechas || []).filter(function (e) { return e.d <= iso && e.h >= iso; })
+    return (DATA.fechas || []).concat(avisosCal()).filter(function (e) { return e.d <= iso && e.h >= iso; })
       .sort(function (a, b) { return CAL_ORDER.indexOf(a.k) - CAL_ORDER.indexOf(b.k); });
   }
   function fmtShort(iso) { var d = dateOf(iso); return d.getDate() + "/" + (d.getMonth() + 1); }
@@ -1154,6 +1185,7 @@
   "a al como con cual cuales cuando de del donde el en es esta este hay la las lo los me mi mis no o para pero por puedo que se si sin sobre soy su te tengo un una uno y ya tu hago quiero necesito saber hacer".split(" ").forEach(function (w) { STOP[w] = 1; });
   function stem(t) { if (t.length > 5 && /es$/.test(t)) return t.slice(0, -2); if (t.length > 3 && /s$/.test(t)) return t.slice(0, -1); return t; }
   function toks(s) { return norm(s).replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(function (t) { return t.length > 1 && !STOP[t]; }).map(stem); }
+  var FAQ_COLS = "id,topic,q,a,k,links,top,priority,active,updated_at";
   function prepFaq(f) {
     f.byId = {};
     f.items.forEach(function (it) {
@@ -2336,14 +2368,14 @@
   function openPlanMenu(c) {
     var confirmReset = false;
     function render() {
-      var n = Object.keys(S.prog[c.id] || {}).length;
+      var n = Object.keys(S.prog[c.id] || {}).length + (S.afc[c.id] || []).length + (S.xo[c.id] || []).length;
       return '<div class="dHead"><div><p class="dMeta">' + esc(c.name) + '</p><h2 class="h2" id="sheetTitle">Opciones</h2></div><button class="iconBtn" type="button" data-close aria-label="Cerrar">' + ic("x") + "</button></div>" +
         '<div class="sheetList" style="margin-top:16px">' +
         (acct() ? "" : '<button type="button" data-act="share">' + ic("share") + "<span>Pasar mi plan a otro dispositivo<small>Genera un link con tu progreso. Abrilo en el celu o la compu.</small></span></button>") +
         '<button type="button" data-act="switch">' + ic("plan") + "<span>Cambiar de carrera<small>Tu progreso de cada carrera queda guardado.</small></span></button>" +
         '<button type="button" data-act="setup">' + ic("filter") + "<span>Cómo ver el mapa<small>Volver a elegir si se va desbloqueando o se ve todo.</small></span></button>" +
         '<a href="' + esc(c.official) + '" target="_blank" rel="noopener">' + ic("ext") + "<span>Plan oficial en la web de la Facultad<small>Plan " + esc(c.plan) + " · " + c.hours + " horas</small></span></a>" +
-        (n ? '<button type="button" class="danger" data-act="reset">' + ic("x") + "<span>" + (confirmReset ? "Tocá de nuevo para borrar todo" : "Reiniciar mi progreso") + "<small>" + (confirmReset ? "No se puede deshacer." : "Borra lo que marcaste en esta carrera (" + n + " materias).") + "</small></span></button>" : "") +
+        (n ? '<button type="button" class="danger" data-act="reset">' + ic("x") + "<span>" + (confirmReset ? "Tocá de nuevo para borrar todo" : "Reiniciar mi progreso") + "<small>" + (confirmReset ? "No se puede deshacer." : "Borra materias, notas, AFC y optativas de esta carrera.") + "</small></span></button>" : "") +
         "</div>";
     }
     openSheet(render);
@@ -2356,7 +2388,9 @@
       else if (a === "share") sharePlan(c);
       else if (a === "reset") {
         if (!confirmReset) { confirmReset = true; refreshSheet(); return; }
-        delete S.prog[c.id]; save(); closeSheet(); rerenderPlanBits(); toast("Listo, arrancás de cero.");
+        // de cero de verdad: materias, notas, AFC, optativas agregadas y las elegidas en cada lugar
+        (S.xo[c.id] || []).slice().forEach(function (d) { removeExtra(c, d.c); });
+        delete S.prog[c.id]; delete S.afc[c.id]; delete S.xo[c.id]; save(); closeSheet(); rerenderPlanBits(); toast("Listo, arrancás de cero.");
       }
     };
   }
@@ -3248,6 +3282,163 @@
       }, { passive: true });
     }).catch(failed);
   }
+
+  /* ======================================================================
+     EDITORES DEL EQUIPO: links, preguntas frecuentes y cátedras.
+     Lista con buscador → formulario. Guarda en Supabase (las reglas de la
+     base dejan escribir solo a organizadores y admins).
+     ====================================================================== */
+  var ED = {
+    links: {
+      title: "Links útiles", icon: "links", table: "links", key: "id", cols: LINK_COLS,
+      load: function () { return ensureLinks(true).then(function () { return (DATA.linksAll || []).filter(function (l) { return l.id; }); }); },
+      group: function (l) { return l.category || "Otros"; },
+      name: function (l) { return l.label || l.title; }, sub: function (l) { return String(l.url || "").replace(/^https?:\/\//, ""); },
+      off: function (l) { return l.active === false; },
+      text: function (l) { return [l.label, l.title, l.url, l.category, l.desc].join(" "); },
+      blank: function () { return { title: "", label: "", url: "https://", category: "", desc: "", priority: 50, active: true, isNew: true }; },
+      fields: function (l) {
+        var cats = []; (DATA.linksAll || []).forEach(function (x) { if (x.category && cats.indexOf(x.category) < 0) cats.push(x.category); });
+        return edF("label", "Nombre que se ve", l.label || l.title, 'maxlength="120" required') + edF("url", "Link", l.url, 'type="url" inputmode="url" maxlength="500" required') +
+          '<div class="ki-two">' + edF("category", "Categoría", l.category, 'maxlength="40" list="edCats"') + edF("priority", "Orden", l.priority == null ? 50 : l.priority, 'type="number" inputmode="numeric"') + "</div>" +
+          '<datalist id="edCats">' + cats.map(function (c) { return '<option value="' + esc(c) + '">'; }).join("") + "</datalist>" +
+          edF("desc", "Descripción <small>(opcional)</small>", l.desc, 'maxlength="300" placeholder="Para qué sirve, en una línea"') + edT("active", "eye", "Se ve en la página", l.active !== false);
+      },
+      read: function (f, l) {
+        var label = f.label.value.trim();
+        return { id: l.id, title: l.title || label, label: label, url: f.url.value.trim(), category: f.category.value.trim() || "Otros", description: f.desc.value.trim() || null, priority: Math.round(+f.priority.value || 0), active: f.active.checked };
+      },
+      check: function (r) { if (r.label.length < 2) return "Poné el nombre."; if (!/^(https?:\/\/|mailto:)/i.test(r.url)) return "El link tiene que empezar con https:// (o mailto:)."; },
+      after: function () { DATA.links = null; return ensureLinks(true); }
+    },
+    faq: {
+      title: "Preguntas frecuentes", icon: "chat", table: "faq", key: "id", cols: FAQ_COLS,
+      load: function () { DATA.faq = null; return ensureFaq().then(function () { return DATA.faqAll || []; }); },
+      group: function (q) { var t = ((DATA.faq || {}).topics || []).filter(function (x) { return x.id === q.topic; })[0]; return t ? t.label : q.topic; },
+      name: function (q) { return q.q; }, sub: function (q) { return [].concat(q.a)[0] || ""; },
+      off: function (q) { return q.active === false; }, badge: function (q) { return q.top ? "Top " + q.top : ""; },
+      text: function (q) { return [q.q, [].concat(q.a).join(" "), (q.k || []).join(" ")].join(" "); },
+      blank: function () { return { id: "", topic: (((DATA.faq || {}).topics || [])[0] || {}).id || "cursada", q: "", a: [], k: [], links: [], top: null, priority: 50, active: true, isNew: true }; },
+      fields: function (q) {
+        var topics = (DATA.faq || {}).topics || [];
+        return edF("q", "Pregunta", q.q, 'maxlength="200" required placeholder="¿Cómo…?"') +
+          '<label class="ac-f"><span>Respuesta <small>(dejá un renglón vacío entre párrafos)</small></span><textarea name="a" rows="6" maxlength="2000" required>' + esc([].concat(q.a || []).join("\n\n")) + "</textarea></label>" +
+          '<div class="ki-two"><label class="ac-f"><span>Tema</span><select name="topic">' + topics.map(function (t) { return '<option value="' + esc(t.id) + '"' + (t.id === q.topic ? " selected" : "") + ">" + esc(t.label) + "</option>"; }).join("") + "</select></label>" +
+          '<label class="ac-f"><span>Entre las 5 más preguntadas</span><select name="top"><option value="">No</option>' + [1, 2, 3, 4, 5].map(function (n) { return '<option value="' + n + '"' + (q.top === n ? " selected" : "") + ">Puesto " + n + "</option>"; }).join("") + "</select></label></div>" +
+          edF("k", "Palabras con las que la buscan <small>(separadas por coma)</small>", (q.k || []).join(", "), 'maxlength="400" placeholder="final, mesa, rendir"') +
+          '<label class="ac-f"><span>Botones debajo de la respuesta <small>(uno por renglón: Texto | link)</small></span><textarea name="links" rows="3" placeholder="SIU Guaraní | https://autogestion.guarani.unlp.edu.ar">' + esc((q.links || []).map(function (b) { return b.label + " | " + (b.url || b.go || b.match || ""); }).join("\n")) + "</textarea></label>" +
+          edT("active", "eye", "Se ve en el chat", q.active !== false);
+      },
+      read: function (f, q) {
+        var btns = f.links.value.split("\n").map(function (x) { return x.trim(); }).filter(Boolean).map(function (x) {
+          var i = x.indexOf("|"), label = (i < 0 ? x : x.slice(0, i)).trim(), to = i < 0 ? "" : x.slice(i + 1).trim();
+          return /^(https?:|mailto:)/i.test(to) ? { label: label, url: to } : /^#\//.test(to) || /^(catedra|consulta|cal|about)$/.test(to) ? { label: label, go: to } : { label: label, match: to };
+        });
+        var qq = f.q.value.trim();
+        return { id: q.id || slugOf(qq), topic: f.topic.value, q: qq, a: f.a.value.split(/\n\s*\n/).map(function (x) { return x.trim(); }).filter(Boolean).slice(0, 8),
+          k: f.k.value.split(",").map(function (x) { return x.trim().toLowerCase(); }).filter(Boolean).slice(0, 30), links: btns, top: f.top.value ? +f.top.value : null, priority: q.priority == null ? 50 : q.priority, active: f.active.checked };
+      },
+      check: function (r) { if (r.q.length < 4) return "Escribí la pregunta."; if (!r.a.length) return "Escribí la respuesta."; },
+      after: function () { DATA.faq = null; return ensureFaq(); }
+    },
+    cat: {
+      title: "Cátedras", icon: "building", table: "catedras", key: "code", cols: "code,page,mail,updated_at", minSearch: 2,
+      load: function () {
+        return ensurePlans().then(loadCatFixes).then(function () {
+          var names = {}; ((DATA.plans || {}).careers || []).forEach(function (c) { (DATA.byId[c.id] ? DATA.byId[c.id].courses : []).forEach(function (x) { if (x.c && x.n && !names[x.c]) names[x.c] = x.n; }); });
+          var fixed = {}; (DATA.catFixes || []).forEach(function (r) { fixed[r.code] = 1; });
+          return Object.keys(DATA.catedras || {}).map(function (code) { var v = DATA.catedras[code]; return { code: code, n: names[code] || "", p: v.p || "", m: v.m || "", fixed: !!fixed[code] }; })
+            .sort(function (a, b) { return (a.n || "~").localeCompare(b.n || "~"); });
+        });
+      },
+      group: function () { return ""; },
+      name: function (c) { return c.n || "Materia " + c.code; }, sub: function (c) { return c.m || "sin mail"; }, code: function (c) { return c.code; },
+      badge: function (c) { return c.fixed ? "Corregida" : ""; },
+      text: function (c) { return c.code + " " + c.n + " " + c.m; },
+      fields: function (c) {
+        var base = DATA.catedrasBase || "https://www1.ing.unlp.edu.ar/catedras/";
+        return '<p class="ed-hint">' + esc(c.code) + (c.n ? " · " + esc(c.n) : "") + "</p>" +
+          edF("page", "Página de la cátedra", c.p ? (/^https?:/.test(c.p) ? c.p : base + c.p) : "", 'type="url" inputmode="url" maxlength="200" placeholder="' + esc(base) + '"') +
+          edF("mail", "Mail de la cátedra", c.m, 'type="email" inputmode="email" maxlength="120" placeholder="catedra@ing.unlp.edu.ar"');
+      },
+      read: function (f, c) {
+        var base = DATA.catedrasBase || "https://www1.ing.unlp.edu.ar/catedras/", pg = f.page.value.trim();
+        return { code: c.code, page: pg.indexOf(base) === 0 ? pg.slice(base.length) : pg || null, mail: f.mail.value.trim() || null };
+      },
+      check: function (r) { if (r.mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(r.mail)) return "Ese mail no parece válido."; },
+      upsert: true,
+      after: function () { return loadCatFixes(); }
+    }
+  };
+  function edF(name, label, val, attrs) { return '<label class="ac-f"><span>' + label + '</span><input name="' + name + '" value="' + esc(val == null ? "" : val) + '" ' + (attrs || "") + "></label>"; }
+  function edT(name, icon, label, on) { return '<label class="av-pinrow"><input type="checkbox" name="' + name + '"' + (on ? " checked" : "") + ">" + ic(icon) + "<span>" + label + "</span></label>"; }
+  function slugOf(t) { return norm(t).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32) + "-" + Date.now().toString(36).slice(-4); }
+  function openEditor(kind) {
+    var E = ED[kind], st = { list: null, q: "", g: "", it: null, busy: false, msg: "", del: false };
+    var listView = function () {
+      var items = st.list || [], q = norm(st.q);
+      var groups = []; items.forEach(function (x) { var g = E.group(x); if (g && groups.indexOf(g) < 0) groups.push(g); });
+      var shown = items.filter(function (x) { return (!q || norm(E.text(x)).indexOf(q) >= 0) && (!st.g || E.group(x) === st.g); });
+      var needQ = E.minSearch && q.length < E.minSearch;
+      var h = mHead(E.title, "Lo que maneja el equipo", E.icon) +
+        '<div class="ed-top"><label class="ob-srch">' + ic("search") + '<span class="sr">Buscar</span><input type="search" data-ed-q value="' + esc(st.q) + '" placeholder="' + (kind === "cat" ? "Materia o código" : "Buscar") + '" autocomplete="off"></label>' +
+        (E.blank ? '<button type="button" class="btn btn--sm btn--primary" data-ed-new>' + ic("plus") + "Nuevo</button>" : "") + "</div>";
+      if (groups.length > 1) h += '<div class="chipsRow ed-chips"><button class="chip" type="button" data-ed-g="" aria-pressed="' + !st.g + '">Todos</button>' + groups.map(function (g) { return '<button class="chip" type="button" data-ed-g="' + esc(g) + '" aria-pressed="' + (st.g === g) + '">' + esc(g) + "</button>"; }).join("") + "</div>";
+      if (st.list == null) return h + '<p class="tm-empty">Cargando…</p>';
+      if (needQ) return h + '<p class="ed-hint">Escribí el nombre de la materia o su código (' + items.length + " materias).</p>";
+      var byG = {}; shown.forEach(function (x) { var g = E.group(x); (byG[g] = byG[g] || []).push(x); });
+      var keys = Object.keys(byG);
+      if (!keys.length) return h + '<p class="tm-empty">No encontramos nada con eso.</p>';
+      return h + '<div class="ed-res"' + (st.q ? ' data-ed-count="' + shown.length + '"' : "") + ">" + keys.map(function (g) {
+        return '<div class="tm2-g">' + (g ? '<p class="tm2-gk">' + esc(g) + " <b>" + byG[g].length + "</b></p>" : "") + byG[g].slice(0, 60).map(function (x) {
+          var i = items.indexOf(x), b = E.badge ? E.badge(x) : "";
+          return '<button type="button" class="ed-row' + (E.off && E.off(x) ? " is-off" : "") + '" data-ed-i="' + i + '">' + (E.code ? '<span class="ed-code">' + esc(E.code(x)) + "</span>" : "") +
+            '<span class="ed-t"><b>' + esc(E.name(x)) + "</b><small>" + esc(E.sub(x)) + "</small></span>" + (E.off && E.off(x) ? '<em class="ed-b is-off">Oculto</em>' : "") + (b ? '<em class="ed-b">' + esc(b) + "</em>" : "") + ic("chev") + "</button>";
+        }).join("") + "</div>";
+      }).join("") + "</div>";
+    };
+    var formView = function () {
+      var it = st.it;
+      return '<div class="dHead"><button class="iconBtn iconBtn--sm" type="button" data-ed-back aria-label="Volver">' + ic("back") + '</button><div><p class="dMeta">' + esc(E.title) + '</p><h2 class="h2" id="sheetTitle">' + (it.isNew ? "Nuevo" : "Editar") + "</h2></div>" +
+        '<button class="iconBtn iconBtn--sm" type="button" data-close aria-label="Cerrar">' + ic("x") + "</button></div>" +
+        '<form class="ac-form ki-form" data-ed-form novalidate>' + E.fields(it) +
+        (st.msg ? '<p class="ac-msg is-err" role="status">' + esc(st.msg) + "</p>" : "") +
+        '<button type="submit" class="btn btn--primary"' + (st.busy ? " disabled" : "") + ">" + (st.busy ? "Guardando…" : it.isNew ? "Agregar" : "Guardar cambios") + "</button>" +
+        (!it.isNew && (E.blank || it.fixed) ? '<button type="button" class="btn av-del' + (st.del ? " is-armed" : "") + '" data-ed-del>' + ic(E.blank ? "trash" : "undo") + (st.del ? "Tocá de nuevo para confirmar" : E.blank ? "Borrar" : "Volver a lo original") + "</button>" : "") + "</form>";
+    };
+    var view = function () { return st.it ? formView() : listView(); };
+    var reload = function () { st.list = null; refreshSheet(); return E.load().then(function (l) { st.list = l; if (!st.it) refreshSheet(); }).catch(function (e) { st.list = []; toast(GA.errorText ? GA.errorText(e) : "No se pudo cargar."); refreshSheet(); }); };
+    var paintList = function () { var box = $(".ed-res, .tm-empty, .ed-hint", sheetBody); var html = listView(); var tmp = document.createElement("div"); tmp.innerHTML = html; var q = $("[data-ed-q]", sheetBody);
+      // repinta la lista sin perder el foco del buscador
+      $all(".ed-res, .tm-empty, .ed-hint, .ed-chips", sheetBody).forEach(function (n) { n.remove(); });
+      $all(".ed-chips, .ed-res, .tm-empty, .ed-hint", tmp).forEach(function (n) { sheetBody.appendChild(n); }); if (q) q.focus(); };
+    openSheetAs("sheet--modal", view);
+    reload();
+    sheetBody.oninput = function (e) { if (e.target.hasAttribute("data-ed-q")) { st.q = e.target.value; paintList(); } };
+    sheetBody.onclick = function (e) {
+      var g = e.target.closest("[data-ed-g]"); if (g) { st.g = g.dataset.edG; paintList(); return; }
+      var r = e.target.closest("[data-ed-i]"); if (r) { st.it = Object.assign({}, st.list[+r.dataset.edI]); st.msg = ""; st.del = false; refreshSheet(); sheetBody.scrollTop = 0; return; }
+      if (e.target.closest("[data-ed-new]")) { st.it = E.blank(); st.msg = ""; refreshSheet(); return; }
+      if (e.target.closest("[data-ed-back]")) { st.it = null; refreshSheet(); return; }
+      var d = e.target.closest("[data-ed-del]"); if (!d) return;
+      if (!st.del) { st.del = true; refreshSheet(); setTimeout(function () { if (st.del) { st.del = false; if ($("[data-ed-del]", sheetBody)) refreshSheet(); } }, 5000); return; }
+      d.disabled = true;
+      GA.deleteRow(E.table, E.key, st.it[E.key] || st.it.code).then(function () { return E.after(); }).then(function () { toast(E.blank ? "Borrado." : "Volvió a lo original."); st.it = null; return reload(); })
+        .catch(function (err) { d.disabled = false; toast(GA.errorText(err)); });
+    };
+    sheetBody.onsubmit = function (e) {
+      var f = e.target.closest("[data-ed-form]"); if (!f) return;
+      e.preventDefault();
+      var row = E.read(f.elements, st.it), bad = E.check(row);
+      if (bad) { st.msg = bad; refreshSheet(); return; }
+      st.busy = true; st.msg = ""; refreshSheet();
+      var isNew = E.upsert ? !st.it.fixed : !!st.it.isNew;
+      if (isNew && E.key === "id" && kind === "links") delete row.id;
+      GA.saveRow(E.table, E.key, row, isNew, E.cols).then(function () { return E.after(); }).then(function () {
+        toast(isNew && !E.upsert ? "¡Agregado!" : "Guardado."); st.busy = false; st.it = null; return reload();
+      }).catch(function (err) { st.busy = false; st.msg = GA.errorText(err); refreshSheet(); });
+    };
+  }
   /* el equipo agrega, edita, oculta o borra kits y productos de la mesita */
   function openKioscoForm(it, kind) {
     var r = it ? Object.assign({}, it.row) : { kind: kind || "producto", name: "", price: 0, category: "", description: "", items: [], label: kind === "kit" ? "Kit Gradiente" : "", image: "", in_stock: true, active: true, priority: 50 };
@@ -3684,13 +3875,22 @@
         '<button type="button" class="btn btn--sm" data-ac="mail">' + ic("mail") + "Con mail</button></div></div>";
     }
     var viaMail = GA.provider() === "email";
-    return '<p class="pf-sec">Tu cuenta <span class="pf2-sync" data-sync-label>' + esc(syncLabel()) + "</span></p><div class=\"pf2-list\">" +
-      (isStaff() ? '<button type="button" class="pf3-new" data-ac="aviso">' + ic("plus") + "<span>Cargar un aviso<small>Sale en Notificaciones con la marca de Gradiente</small></span>" + ic("chev") + "</button>" : "") +
-      (GA.role() === "admin" ? '<button type="button" data-ac="team">' + ic("users") + "<span>Equipo<small>Organizadores y admins</small></span>" + ic("chev") + "</button>" : "") +
+    return (isStaff() ? teamPanel() : "") + '<p class="pf-sec">Tu cuenta <span class="pf2-sync" data-sync-label>' + esc(syncLabel()) + '</span></p><div class="pf2-list">' +
       (viaMail ? '<button type="button" data-ac="pass">' + ic("key") + "<span>Cambiar contraseña</span>" + ic("chev") + "</button>" : "") +
       '<button type="button" data-ac="out">' + ic("back") + "<span>Cerrar sesión</span>" + ic("chev") + "</button>" +
       '<button type="button" class="ac-danger" data-ac="del">' + ic("x") + "<span>" + (ui.delStep ? "Tocá de nuevo para borrar tu cuenta" : "Borrar mi cuenta") + "<small>" + (ui.delStep ? "Se borran tu plan y tus datos. No se puede deshacer." : "Borra la cuenta y todo lo guardado en ella") + "</small></span></button>" +
       "</div>";
+  }
+  /* lo que maneja el equipo, todo en un lugar */
+  function teamPanel() {
+    var row = function (ac, icon, color, t, sub) { return '<button type="button" data-ac="' + ac + '"><span class="tp-ic" style="--tc:' + color + '">' + ic(icon) + "</span><span>" + t + "<small>" + sub + "</small></span>" + ic("chev") + "</button>"; };
+    return '<p class="pf-sec">Lo que maneja el equipo</p><div class="pf2-list tp-list">' +
+      row("aviso", "bell", "#fb7185", "Avisos", "Cargar uno nuevo · Notificaciones y calendario") +
+      row("mesita", "shop", "#fbbf24", "Mesita", "Precios, stock, kits y productos") +
+      row("ed-links", "links", "#60a5fa", "Links útiles", "Agregar, editar u ocultar") +
+      row("ed-faq", "chat", "#a78bfa", "Preguntas frecuentes", "Las respuestas del chat de Ayuda") +
+      row("ed-cat", "building", "#34d399", "Cátedras", "Página y mail de cada materia") +
+      row("team", "users", "#818cf8", "Equipo", GA.role() === "admin" ? "Quién es organizador o admin" : "Quiénes están en el equipo") + "</div>";
   }
   function helpRows() {
     return '<button type="button" data-pf="help">' + ic("chat") + "<span>Ayuda y consultas</span>" + ic("chev") + "</button>" +
@@ -3710,6 +3910,10 @@
     else if (a === "pass") openNewPassword(false);
     else if (a === "team") openTeam();
     else if (a === "aviso") openAvisoForm(null);
+    else if (a === "mesita") { closeSheet(); location.hash = "#/mesita"; }
+    else if (a === "ed-links") openEditor("links");
+    else if (a === "ed-faq") openEditor("faq");
+    else if (a === "ed-cat") openEditor("cat");
     else if (a === "out") openSignOut(b);
     else if (a === "del") {
       if (!ui.delStep) { ui.delStep = true; refreshSheet(); setTimeout(function () { ui.delStep = false; }, 6000); return; }
@@ -3737,13 +3941,13 @@
       .then(function () { if ($("[data-team]", sheetBody)) refreshSheet(); });
   }
   function teamView() {
-    var me = (acct() || {}).email || "", L = tmUI.list || [];
+    var me = (acct() || {}).email || "", L = tmUI.list || [], canEdit = GA.role() === "admin";
     var adm = L.filter(function (p) { return p.role === "admin"; }), org = L.filter(function (p) { return p.role !== "admin"; });
     var av = function (p) { return '<span class="tm2-av tm2-av--' + esc(p.role) + '">' + esc(String(p.name || p.email).trim().charAt(0).toUpperCase()) + "</span>"; };
     var person = function (p) {
       var self = String(p.email).toLowerCase() === me.toLowerCase();
       return '<div class="tm2-p">' + av(p) + '<span class="tm2-who"><strong>' + esc(p.name || p.email.split("@")[0]) + (self ? " <small>vos</small>" : "") + "</strong><small>" + esc(p.email) + "</small></span>" +
-        (self ? '<em class="ac-role ac-role--' + esc(p.role) + '">' + (p.role === "admin" ? "Admin" : "Organizador") + "</em>" :
+        (self || !canEdit ? '<em class="ac-role ac-role--' + esc(p.role) + '">' + (p.role === "admin" ? "Admin" : "Organizador") + "</em>" :
           '<label class="tm2-role"><span class="sr">Rol de ' + esc(p.email) + '</span><select data-tm-role="' + esc(p.email) + '"' + (tmUI.busy ? " disabled" : "") + '><option value="organizador"' + (p.role !== "admin" ? " selected" : "") + '>Organizador</option><option value="admin"' + (p.role === "admin" ? " selected" : "") + ">Admin</option></select>" + ic("chev") + "</label>" +
           '<button type="button" class="tm2-rm" data-tm-rm="' + esc(p.email) + '" aria-label="Sacarle el rol a ' + esc(p.email) + '"' + (tmUI.busy ? " disabled" : "") + ">" + ic("x") + "</button>") + "</div>";
     };
@@ -3751,10 +3955,10 @@
     var body = tmUI.list == null ? '<p class="tm-empty">Cargando…</p>' : !L.length ? '<p class="tm-empty">Todavía no hay nadie más.</p>' : group("Admins", adm, "is-adm") + group("Organizadores", org, "is-org");
     return mHead("Equipo", "Administración", "users") +
       '<div data-team>' +
-      '<form class="tm2-add" data-tm-form novalidate><label class="sr" for="tmMail">Mail de la cuenta</label><input id="tmMail" name="mail" type="email" autocomplete="off" placeholder="mail@de-la-cuenta.com" required>' +
+      (canEdit ? '<form class="tm2-add" data-tm-form novalidate><label class="sr" for="tmMail">Mail de la cuenta</label><input id="tmMail" name="mail" type="email" autocomplete="off" placeholder="mail@de-la-cuenta.com" required>' +
       '<label class="tm2-role"><span class="sr">Rol</span><select name="role"><option value="organizador">Organizador</option><option value="admin">Admin</option></select>' + ic("chev") + "</label>" +
       '<button type="submit" class="btn btn--primary btn--sm"' + (tmUI.busy ? " disabled" : "") + ">" + ic("plus") + "<span>Sumar</span></button></form>" +
-      '<p class="tm-hint tm2-foot">La persona tiene que haber entrado una vez con su cuenta.</p>' +
+      '<p class="tm-hint tm2-foot">La persona tiene que haber entrado una vez con su cuenta.</p>' : '<p class="tm-hint tm2-foot">Solo los admins pueden sumar o sacar gente del equipo.</p>') +
       (tmUI.msg ? '<p class="ac-msg' + (tmUI.tone ? " is-" + tmUI.tone : "") + '" role="status">' + esc(tmUI.msg) + "</p>" : "") + body + "</div>";
   }
   function bindTeam() {
@@ -4078,13 +4282,14 @@
         '<input type="file" accept="image/*" data-av-file hidden></label>' + (ui2.preview ? '<button type="button" class="pf2-mini" data-av-noimg>Sacar foto</button>' : "") + "</div>" +
         '<div class="av-dates"><label class="ac-f"><span>Se ve desde</span><input name="starts_on" type="date" required value="' + esc(f.starts_on) + '"></label>' +
         '<label class="ac-f"><span>Hasta <small>(vacío = siempre)</small></span><input name="ends_on" type="date" value="' + esc(f.ends_on || "") + '"></label></div>' +
+        '<label class="av-pinrow av-calrow"><input type="checkbox" name="in_cal"' + (f.in_cal !== false ? " checked" : "") + ">" + ic("cal") + "<span>Marcarlo en el calendario<small>Esos días aparecen marcados en el calendario del inicio</small></span></label>" +
         '<label class="av-pinrow"><input type="checkbox" name="pinned"' + (f.pinned ? " checked" : "") + ">" + ic("tack") + "<span>Fijarlo arriba de todo</span></label>" +
         (ui2.msg ? '<p class="ac-msg is-err" role="status">' + esc(ui2.msg) + "</p>" : "") +
         '<button type="submit" class="btn btn--primary"' + (ui2.busy ? " disabled" : "") + ">" + (ui2.busy ? "Guardando…" : a ? "Guardar cambios" : "Publicar aviso") + "</button></form>";
     };
     var keep = function () {
       var fm = $("[data-av-form]", sheetBody); if (!fm) return;
-      f.title = fm.title.value; f.body = fm.body.value; f.url = fm.url.value.trim(); f.starts_on = fm.starts_on.value; f.ends_on = fm.ends_on.value; f.pinned = fm.pinned.checked;
+      f.title = fm.title.value; f.body = fm.body.value; f.url = fm.url.value.trim(); f.starts_on = fm.starts_on.value; f.ends_on = fm.ends_on.value; f.pinned = fm.pinned.checked; f.in_cal = fm.in_cal.checked;
     };
     openSheetAs("sheet--modal", view);
     sheetBody.onclick = function (e) {
