@@ -3407,7 +3407,7 @@
         '<form class="ac-form ki-form" data-ed-form novalidate>' + E.fields(it) +
         (st.msg ? '<p class="ac-msg is-err" role="status">' + esc(st.msg) + "</p>" : "") +
         '<button type="submit" class="btn btn--primary"' + (st.busy ? " disabled" : "") + ">" + (st.busy ? "Guardando…" : it.isNew ? "Agregar" : "Guardar cambios") + "</button>" +
-        (!it.isNew && (E.blank || it.fixed) ? '<button type="button" class="btn av-del' + (st.del ? " is-armed" : "") + '" data-ed-del>' + ic(E.blank ? "trash" : "undo") + (st.del ? "Tocá de nuevo para confirmar" : E.blank ? "Borrar" : "Volver a lo original") + "</button>" : "") + "</form>";
+        (!it.isNew && (E.blank || it.fixed) && isAdmin() ? '<button type="button" class="btn av-del' + (st.del ? " is-armed" : "") + '" data-ed-del>' + ic(E.blank ? "trash" : "undo") + (st.del ? "Tocá de nuevo para confirmar" : E.blank ? "Borrar" : "Volver a lo original") + "</button>" : "") + "</form>";
     };
     var view = function () { return st.it ? formView() : listView(); };
     var reload = function () { st.list = null; refreshSheet(); return E.load().then(function (l) { st.list = l; if (!st.it) refreshSheet(); }).catch(function (e) { st.list = []; toast(GA.errorText ? GA.errorText(e) : "No se pudo cargar."); refreshSheet(); }); };
@@ -3442,6 +3442,46 @@
       }).catch(function (err) { st.busy = false; st.msg = GA.errorText(err); refreshSheet(); });
     };
   }
+
+  /* registro de cambios (solo admins): lo llena la base sola, nadie lo puede editar */
+  var LOG_T = { avisos: "Avisos", kiosco: "Mesita", links: "Links", faq: "Preguntas", catedras: "Cátedras", user_roles: "Equipo" };
+  var LOG_A = { crear: ["agregó", "#34d399"], editar: ["editó", "#60a5fa"], borrar: ["borró", "#fb7185"] };
+  function logWhen(iso) {
+    var d = new Date(iso), m = Math.round((Date.now() - d) / 6e4);
+    if (m < 1) return "recién"; if (m < 60) return "hace " + m + " min"; if (m < 1440) return "hace " + Math.round(m / 60) + " h";
+    return d.getDate() + "/" + (d.getMonth() + 1) + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+  }
+  // qué campos cambiaron, en criollo
+  function logDiff(c) {
+    if (!c.antes || !c.despues) return "";
+    var skip = { updated_at: 1, created_at: 1, id: 1 }, out = [];
+    Object.keys(c.despues).forEach(function (k) {
+      if (skip[k]) return;
+      var a = JSON.stringify(c.antes[k]), b = JSON.stringify(c.despues[k]);
+      if (a !== b) out.push(k === "price" ? "precio " + fmtPrice(c.antes[k]) + " → " + fmtPrice(c.despues[k]) : k === "active" ? (c.despues[k] ? "lo mostró" : "lo ocultó") : k === "in_stock" ? (c.despues[k] ? "hay stock" : "sin stock") : k);
+    });
+    return out.slice(0, 4).join(" · ");
+  }
+  function openLog() {
+    var st = { list: null, f: "" };
+    var view = function () {
+      var L = (st.list || []).filter(function (c) { return !st.f || c.tabla === st.f; });
+      var h = mHead("Registro de cambios", "Solo lo ven los admins", "clock") +
+        '<div class="chipsRow ed-chips"><button class="chip" type="button" data-lg="" aria-pressed="' + !st.f + '">Todo</button>' +
+        Object.keys(LOG_T).map(function (k) { return '<button class="chip" type="button" data-lg="' + k + '" aria-pressed="' + (st.f === k) + '">' + LOG_T[k] + "</button>"; }).join("") + "</div>";
+      if (st.list == null) return h + '<p class="tm-empty">Cargando…</p>';
+      if (!L.length) return h + '<p class="tm-empty">Todavía no hay cambios acá.</p>';
+      return h + '<div class="tm2-g lg-list">' + L.map(function (c) {
+        var a = LOG_A[c.accion] || ["cambió", "#94a3b8"], who = (c.who_email || "alguien").split("@")[0], d = logDiff(c);
+        return '<div class="lg-row"><i style="background:' + a[1] + '"></i><span><b>' + esc(who) + "</b> " + a[0] + " <b>" + esc(c.fila || "algo") + "</b>" +
+          "<small>" + esc(LOG_T[c.tabla] || c.tabla) + " · " + logWhen(c.at) + (d ? " · " + esc(d) : "") + "</small></span></div>";
+      }).join("") + "</div>";
+    };
+    openSheetAs("sheet--modal", view);
+    GA.rows("cambios", "id,at,who_email,tabla,accion,fila,antes,despues", "at.desc", 200).then(function (l) { st.list = l || []; refreshSheet(); })
+      .catch(function (e) { st.list = []; toast(GA.errorText(e)); refreshSheet(); });
+    sheetBody.onclick = function (e) { var g = e.target.closest("[data-lg]"); if (g) { st.f = g.dataset.lg; refreshSheet(); } };
+  }
   /* el equipo agrega, edita, oculta o borra kits y productos de la mesita */
   function openKioscoForm(it, kind) {
     var r = it ? Object.assign({}, it.row) : { kind: kind || "producto", name: "", price: 0, category: "", description: "", items: [], label: kind === "kit" ? "Kit Gradiente" : "", image: "", in_stock: true, active: true, priority: 50 };
@@ -3466,7 +3506,7 @@
         '<label class="ac-f ki-ord"><span>Orden <small>(más chico, más arriba)</small></span><input name="priority" type="number" inputmode="numeric" value="' + (r.priority == null ? 50 : r.priority) + '"></label>' +
         (ui2.msg ? '<p class="ac-msg is-err" role="status">' + esc(ui2.msg) + "</p>" : "") +
         '<button type="submit" class="btn btn--primary"' + (ui2.busy ? " disabled" : "") + ">" + (ui2.busy ? "Guardando…" : it ? "Guardar cambios" : "Agregar") + "</button>" +
-        (it ? '<button type="button" class="btn av-del' + (ui2.del ? " is-armed" : "") + '" data-ki-del>' + ic("trash") + (ui2.del ? "Tocá de nuevo para borrarlo" : "Borrar") + "</button>" : "") + "</form>";
+        (it && isAdmin() ? '<button type="button" class="btn av-del' + (ui2.del ? " is-armed" : "") + '" data-ki-del>' + ic("trash") + (ui2.del ? "Tocá de nuevo para borrarlo" : "Borrar") + "</button>" : "") + "</form>";
     };
     var keep = function () {
       var f = $("[data-ki-form]", sheetBody); if (!f) return;
@@ -3893,7 +3933,9 @@
       row("ed-links", "links", "#60a5fa", "Links útiles", "Agregar, editar u ocultar") +
       row("ed-faq", "chat", "#a78bfa", "Preguntas frecuentes", "Las respuestas del chat de Ayuda") +
       row("ed-cat", "building", "#34d399", "Cátedras", "Página y mail de cada materia") +
-      row("team", "users", "#818cf8", "Equipo", GA.role() === "admin" ? "Quién es organizador o admin" : "Quiénes están en el equipo") + "</div>";
+      row("team", "users", "#818cf8", "Equipo", GA.role() === "admin" ? "Quién es organizador o admin" : "Quiénes están en el equipo") +
+      (isAdmin() ? row("log", "clock", "#94a3b8", "Registro de cambios", "Quién cambió qué y cuándo · solo admins") : "") + "</div>" +
+      (isAdmin() ? "" : '<p class="tm-hint tm2-foot">Podés agregar, editar y ocultar. Borrar para siempre es de los admins.</p>');
   }
   function helpRows() {
     return '<button type="button" data-pf="help">' + ic("chat") + "<span>Ayuda y consultas</span>" + ic("chev") + "</button>" +
@@ -3915,6 +3957,7 @@
     else if (a === "aviso") openAvisoForm(null);
     else if (a === "mesita") { closeSheet(); location.hash = "#/mesita"; }
     else if (a === "ed-links") openEditor("links");
+    else if (a === "log") openLog();
     else if (a === "ed-faq") openEditor("faq");
     else if (a === "ed-cat") openEditor("cat");
     else if (a === "out") openSignOut(b);
@@ -4125,6 +4168,7 @@
       .catch(function () { return DATA.avisos; });
   }
   function isStaff() { return !!acct() && GA.role && GA.role() !== "estudiante"; }
+  function isAdmin() { return !!acct() && GA.role && GA.role() === "admin"; }
   function avState(a, today) { return a.starts_on > today ? "prog" : a.ends_on && a.ends_on < today ? "old" : "on"; }
   function agoLabel(iso, today) {
     var d = Math.round((dateOf(today) - dateOf(iso)) / 864e5);
@@ -4239,7 +4283,7 @@
         '<p class="av-when">' + ic("cal") + "Desde el " + fmtShort(a.starts_on) + (a.ends_on ? " hasta el " + fmtShort(a.ends_on) : "") + (avState(a, today) === "prog" ? " · todavía no se ve" : avState(a, today) === "old" ? " · ya no se ve" : "") + "</p>" +
         '<div class="av-acts">' + (a.url ? '<a class="btn btn--primary" href="' + esc(a.url) + '" target="_blank" rel="noopener">' + ic("ext") + "Abrir link</a>" : "") +
         (isStaff() ? '<button type="button" class="btn" data-av-edit>' + ic("edit") + "Editar</button>" +
-          '<button type="button" class="btn av-del' + (del ? " is-armed" : "") + '" data-av-del>' + ic("trash") + (del ? "Tocá de nuevo para borrar" : "Borrar") + "</button>" : "") + "</div>";
+          (isAdmin() ? '<button type="button" class="btn av-del' + (del ? " is-armed" : "") + '" data-av-del>' + ic("trash") + (del ? "Tocá de nuevo para borrar" : "Borrar") + "</button>" : "") : "") + "</div>";
     };
     openSheetAs("sheet--modal", view);
     sheet.classList.add("sheet--av");

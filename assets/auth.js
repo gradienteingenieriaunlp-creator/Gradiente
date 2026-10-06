@@ -165,10 +165,12 @@
 
   /* ---------- tablas que edita el equipo (links, faq, catedras) ---------- */
   // con sesión del equipo, por la librería (ve también lo oculto); si no, lectura pública sin librería
-  function rows(table, cols, order) {
-    if (sb && user && role !== "estudiante") return sb.from(table).select(cols).order(order || "priority").then(unwrap);
+  // order: "columna" o "columna.desc"; limit opcional
+  function rows(table, cols, order, limit) {
+    var o = String(order || "priority").split("."), desc = o[1] === "desc";
+    if (sb && user && role !== "estudiante") { var q = sb.from(table).select(cols).order(o[0], { ascending: !desc }); if (limit) q = q.limit(limit); return q.then(unwrap); }
     if (!CFG.url || !CFG.anonKey) return Promise.reject(new Error("sin Supabase"));
-    return fetch(CFG.url + "/rest/v1/" + table + "?select=" + cols + "&order=" + (order || "priority"), {
+    return fetch(CFG.url + "/rest/v1/" + table + "?select=" + cols + "&order=" + (order || "priority") + (limit ? "&limit=" + limit : ""), {
       headers: { apikey: CFG.anonKey, Authorization: "Bearer " + CFG.anonKey }
     }).then(function (r) { if (!r.ok) throw new Error(table + " " + r.status); return r.json(); });
   }
