@@ -33,6 +33,8 @@
     rows: rows,
     saveRow: saveRow,
     deleteRow: deleteRow,
+    // funciones de la base para el equipo (qué se cursa)
+    rpc: function (fn, args) { return need().then(function () { return sb.rpc(fn, args || {}); }).then(unwrap); },
     inRecovery: function () { return recovery; },
     onChange: function (fn) { listeners.push(fn); },
     signInGoogle: signInGoogle,
