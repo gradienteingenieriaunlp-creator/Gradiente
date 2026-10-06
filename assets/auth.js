@@ -29,6 +29,10 @@
     kiosco: kiosco,
     saveKiosco: saveKiosco,
     deleteKiosco: deleteKiosco,
+    // links, preguntas frecuentes y cátedras: lectura pública y edición del equipo
+    rows: rows,
+    saveRow: saveRow,
+    deleteRow: deleteRow,
     inRecovery: function () { return recovery; },
     onChange: function (fn) { listeners.push(fn); },
     signInGoogle: signInGoogle,
@@ -104,7 +108,7 @@
   }
 
   /* ---------- avisos ---------- */
-  var AV_COLS = "id,kind,title,body,url,image,starts_on,ends_on,pinned,created_at,updated_at";
+  var AV_COLS = "id,kind,title,body,url,image,starts_on,ends_on,pinned,in_cal,created_at,updated_at";
   // con sesión del equipo se ven también los programados y los vencidos; si no, una lectura pública (sin la librería)
   function avisos() {
     if (sb && user && role !== "estudiante") {
@@ -116,7 +120,7 @@
     }).then(function (r) { if (!r.ok) throw new Error("avisos " + r.status); return r.json(); });
   }
   function saveAviso(a) {
-    var row = { kind: a.kind, title: a.title, body: a.body || null, url: a.url || null, image: a.image || null, starts_on: a.starts_on, ends_on: a.ends_on || null, pinned: !!a.pinned };
+    var row = { kind: a.kind, title: a.title, body: a.body || null, url: a.url || null, image: a.image || null, starts_on: a.starts_on, ends_on: a.ends_on || null, pinned: !!a.pinned, in_cal: a.in_cal !== false };
     return need().then(function () {
       var q = a.id ? sb.from("avisos").update(row).eq("id", a.id) : sb.from("avisos").insert(row);
       return q.select(AV_COLS).single();
@@ -158,6 +162,24 @@
   function deleteKiosco(k) {
     return need().then(function () { return sb.from("kiosco").delete().eq("id", k.id); }).then(unwrap).then(function () { return removeAvisoImage(k.image); });
   }
+
+  /* ---------- tablas que edita el equipo (links, faq, catedras) ---------- */
+  // con sesión del equipo, por la librería (ve también lo oculto); si no, lectura pública sin librería
+  function rows(table, cols, order) {
+    if (sb && user && role !== "estudiante") return sb.from(table).select(cols).order(order || "priority").then(unwrap);
+    if (!CFG.url || !CFG.anonKey) return Promise.reject(new Error("sin Supabase"));
+    return fetch(CFG.url + "/rest/v1/" + table + "?select=" + cols + "&order=" + (order || "priority"), {
+      headers: { apikey: CFG.anonKey, Authorization: "Bearer " + CFG.anonKey }
+    }).then(function (r) { if (!r.ok) throw new Error(table + " " + r.status); return r.json(); });
+  }
+  // key: columna que identifica la fila; isNew: insertar en vez de actualizar
+  function saveRow(table, key, row, isNew, cols) {
+    return need().then(function () {
+      var q = isNew ? sb.from(table).insert(row) : sb.from(table).update(row).eq(key, row[key]);
+      return q.select(cols || "*").single();
+    }).then(unwrap);
+  }
+  function deleteRow(table, key, val) { return need().then(function () { return sb.from(table).delete().eq(key, val); }).then(unwrap); }
 
   function need() { return sb ? Promise.resolve(sb) : Promise.reject(new Error("Las cuentas no están disponibles ahora.")); }
   function unwrap(r) { if (r.error) throw r.error; return r.data; }
