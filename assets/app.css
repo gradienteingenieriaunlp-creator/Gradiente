@@ -3751,3 +3751,15 @@ button.cu-row:hover { background: color-mix(in srgb, var(--ink) 4%, transparent)
 .st-cars > span b:last-child { text-align: right; }
 .st-cars i { height: 8px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 7%, transparent); overflow: hidden; }
 .st-cars u { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #6366f1, #a5b4fc); }
+
+/* ---------- v14 · Onboarding en el celu: arriba (el teclado no tapa) y solo scrollea la lista ---------- */
+.sheet--ob .sheet-body { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; overflow: hidden; }
+.sheet--ob .sheet-body > .ob-carlist, .sheet--ob .sheet-body > .ob-list, .sheet--ob .sheet-body > .ob-grid, .sheet--ob .sheet-body > .pw-presets {
+  flex: 1 1 auto; min-height: 120px; max-height: none; overflow: auto; overscroll-behavior: contain; }
+.sheet--ob .sheet-body > .dHead, .sheet--ob .sheet-body > .ob-q, .sheet--ob .sheet-body > .ob-sub, .sheet--ob .sheet-body > .ob-srch, .sheet--ob .sheet-body > .ob-input, .sheet--ob .ob-actions { flex: none; }
+.sheet--ob .ob-actions { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+@media (max-width: 759px) {
+  /* anclado arriba: al abrirse el teclado, la pregunta y el campo quedan a la vista */
+  .sheet.sheet--ob .sheet-panel { top: calc(12px + env(safe-area-inset-top)); transform: translateX(-50%); max-height: calc(100dvh - 24px - env(safe-area-inset-top)); animation-name: obTop; }
+  @keyframes obTop { from { opacity: 0; transform: translate(-50%, 12px); } }
+}
