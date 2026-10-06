@@ -22,6 +22,9 @@
     var r = g.getBoundingClientRect();
     g.style.setProperty("--mx", (e.clientX - r.left) + "px"); g.style.setProperty("--my", (e.clientY - r.top) + "px");
   }, { passive: true });
+  // solo links seguros: web, mail o rutas de la propia página (nada de javascript: ni data:)
+  function safeUrl(u) { u = String(u || "").trim(); return /^(https?:\/\/|mailto:|#\/|\/[^\/])/i.test(u) ? u : ""; }
+  function catUrl(p) { return /^https?:\/\//i.test(p || "") ? p : (DATA.catedrasBase || "https://www1.ing.unlp.edu.ar/catedras/") + (p || ""); }
   function norm(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim(); }
   function getJSON(url) {
     return fetch(url, { cache: "no-cache" }).then(function (r) {
@@ -631,7 +634,7 @@
     if (DATA.links && !force) return Promise.resolve();
     var keep = function (list) {
       DATA.linksAll = list.slice().sort(function (a, b) { return (a.priority || 99) - (b.priority || 99); });
-      DATA.links = DATA.linksAll.filter(function (l) { return l.active !== false && l.url && l.url !== "#" && l.url.charAt(0) !== "/"; });
+      DATA.links = DATA.linksAll.filter(function (l) { return l.active !== false && /^(https?:\/\/|mailto:)/i.test(l.url || ""); });
     };
     var fromJson = function () { return getJSON(CFG.data.links).then(keep).catch(function () { DATA.links = []; DATA.linksAll = []; }); };
     if (!GA.rows) return fromJson();
@@ -1281,8 +1284,8 @@
       if (l.go === "catedra") return '<button type="button" class="msg-link" data-help-go="materia">' + ic("search") + esc(l.label) + "</button>";
       if (l.go === "cal") return '<button type="button" class="msg-link" data-cal-go>' + esc(l.label) + ic("chev") + "</button>";
       if (l.go === "consulta") return '<a class="msg-link msg-link--accent" href="' + esc(CFG.consultationFormUrl) + '" target="_blank" rel="noopener">' + esc(l.label) + ic("ext") + "</a>";
-      if (l.go) return '<a class="msg-link" href="' + esc(l.go) + '">' + esc(l.label) + ic("chev") + "</a>";
-      var url = l.url || linkByMatch(l.match);
+      if (l.go) return safeUrl(l.go) ? '<a class="msg-link" href="' + esc(safeUrl(l.go)) + '">' + esc(l.label) + ic("chev") + "</a>" : "";
+      var url = safeUrl(l.url || linkByMatch(l.match));
       return url ? '<a class="msg-link" href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(l.label) + ic("ext") + "</a>" : "";
     }).join("");
     return a.map(function (p) { return "<p>" + esc(p) + "</p>"; }).join("") + (links ? '<div class="msg-links">' + links + "</div>" : "");
@@ -2354,7 +2357,7 @@
     var tile = function (href, icon, t, sub, cls) { return '<a class="sj-tile' + (cls ? " " + cls : "") + '" href="' + esc(href) + '" target="_blank" rel="noopener"><span class="sj-tile-ic">' + ic(icon) + "</span><strong>" + t + "</strong><small>" + sub + "</small></a>"; };
     if (x.k !== "slot" && x.k !== "afc") {
       if (nb) tiles.push(tile(nubeUrl(x.c), "folder", "Apuntes", nb.n + " archivo" + (nb.n === 1 ? "" : "s") + " en la nube", "sj-tile--nube"));
-      if (cat) tiles.push(tile(base + cat.p, "building", "Cátedra", "Docentes, horarios y programa", "sj-tile--cat"));
+      if (cat) tiles.push(tile(catUrl(cat.p), "building", "Cátedra", "Docentes, horarios y programa", "sj-tile--cat"));
       tiles.push(tile("https://www.asignaturas.ing.unlp.edu.ar/course/search.php?search=" + encodeURIComponent(subjName(x.c)), "book", "Aula virtual", "Portal de Asignaturas", "sj-tile--aula"));
     }
     tiles.push(tile(c.official, "doc", "Plan oficial", "Web de la Facultad", "sj-tile--plan"));
@@ -3185,7 +3188,7 @@
     if (cat && cat.m) h += mailCard({ label: compact ? "Mail de la cátedra" : "Contacto de la cátedra", mail: cat.m, note: compact ? "" : "Es el mail que la cátedra publica en su página." });
     else if (!compact) h += '<div class="dState">' + ic("help") + "<p>La cátedra no publicó un mail de contacto. Probá por su página o por el aula virtual.</p></div>";
     h += '<div class="helpLinks">';
-    if (cat) h += '<a class="resRow" href="' + esc(base + cat.p) + '" target="_blank" rel="noopener"><span class="resRow-t"><strong>Página de la cátedra</strong><small>Docentes, horarios, programa y novedades</small></span>' + ic("ext") + "</a>";
+    if (cat) h += '<a class="resRow" href="' + esc(catUrl(cat.p)) + '" target="_blank" rel="noopener"><span class="resRow-t"><strong>Página de la cátedra</strong><small>Docentes, horarios, programa y novedades</small></span>' + ic("ext") + "</a>";
     h += '<a class="resRow" href="https://www.asignaturas.ing.unlp.edu.ar/course/search.php?search=' + encodeURIComponent(subjName(code)) + '" target="_blank" rel="noopener"><span class="resRow-t"><strong>Aula virtual</strong><small>Buscarla en el Portal de Asignaturas</small></span>' + ic("ext") + "</a>";
     h += "</div>";
     return h;
