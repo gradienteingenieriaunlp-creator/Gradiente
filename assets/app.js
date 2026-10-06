@@ -3620,7 +3620,7 @@
     else if (a === "pass") openNewPassword(false);
     else if (a === "team") openTeam();
     else if (a === "aviso") openAvisoForm(null);
-    else if (a === "out") openSignOut();
+    else if (a === "out") openSignOut(b);
     else if (a === "del") {
       if (!ui.delStep) { ui.delStep = true; refreshSheet(); setTimeout(function () { ui.delStep = false; }, 6000); return; }
       ui.delStep = false; b.disabled = true;
@@ -3770,25 +3770,13 @@
     };
   }
   /* cerrar sesión: en una compu compartida conviene borrar lo de este dispositivo */
-  function openSignOut() {
-    openSheetAs("sheet--modal", function () {
-      return mHead("Cerrar sesión", "Tu plan queda guardado en tu cuenta", "back") +
-        '<p class="so-q">¿Qué hacemos con lo que hay en este dispositivo?</p><div class="so-opts">' +
-        '<button type="button" class="so-opt so-opt--wipe" data-so="wipe"><span class="so-ic">' + ic("x") + "</span><span><strong>Borrar de acá</strong><small>Compu de la facu o prestada</small></span></button>" +
-        '<button type="button" class="so-opt so-opt--keep" data-so="keep"><span class="so-ic">' + ic("check") + "</span><span><strong>Dejarlo acá</strong><small>Tu celu o tu compu</small></span></button></div>";
-    });
-    sheetBody.onsubmit = null;
-    sheetBody.onclick = function (e) {
-      var b = e.target.closest("[data-so]"); if (!b) return;
-      var wipe = b.dataset.so === "wipe";
-      b.disabled = true;
-      pushNow().catch(function () {}).then(function () { return GA.signOut(); }).then(function () {
-        try { localStorage.removeItem(SY_USER); localStorage.removeItem(SY_AT); localStorage.removeItem(SY_DIRTY); } catch (err) {}
-        if (wipe) forgetDevice();
-        closeSheet(); route();
-        toast(wipe ? "Cerraste sesión y borramos los datos de este dispositivo." : "Cerraste sesión.");
-      }).catch(function (err) { b.disabled = false; toast(GA.errorText(err)); });
-    };
+  /* cerrar sesión: sube lo pendiente y sale. Lo del dispositivo queda (el plan también está en la cuenta) */
+  function openSignOut(btn) {
+    if (btn) btn.disabled = true;
+    pushNow().catch(function () {}).then(function () { return GA.signOut(); }).then(function () {
+      try { localStorage.removeItem(SY_USER); localStorage.removeItem(SY_AT); localStorage.removeItem(SY_DIRTY); } catch (err) {}
+      closeSheet(); route(); toast("Cerraste sesión.");
+    }).catch(function (err) { if (btn) btn.disabled = false; toast(GA.errorText(err)); });
   }
   /* la primera vez que alguien aprueba una materia sin cuenta, un aviso suave (una sola vez) */
   function nudgeAccount() {
@@ -3798,8 +3786,8 @@
   }
   GA.onChange(function (ev, u) {
     if (ev === "PASSWORD_RECOVERY") { openNewPassword(true); return; }
-    if (ev === "SIGNED_IN" && u) { syncOnLogin(u); GA.loadRole().then(function () { if (sheet.classList.contains("sheet--modal") && $(".pf", sheetBody)) refreshSheet(); }); }
-    if (ev === "SIGNED_IN" || ev === "SIGNED_OUT" || ev === "USER_UPDATED") { if (sheet.classList.contains("sheet--modal") && $(".pf", sheetBody)) refreshSheet(); }
+    if (ev === "SIGNED_IN" && u) { syncOnLogin(u); GA.loadRole().then(function () { if (sheet.classList.contains("sheet--modal") && $(".pf3, .pf", sheetBody)) refreshSheet(); }); }
+    if (ev === "SIGNED_IN" || ev === "SIGNED_OUT" || ev === "USER_UPDATED") { if (sheet.classList.contains("sheet--modal") && $(".pf3, .pf", sheetBody)) refreshSheet(); }
   });
 
   /* ---------- privacidad (Ley 25.326) ---------- */
