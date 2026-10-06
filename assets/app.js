@@ -4207,12 +4207,13 @@
     };
   }
   /* cerrar sesión: en una compu compartida conviene borrar lo de este dispositivo */
-  /* cerrar sesión: sube lo pendiente y sale. Lo del dispositivo queda (el plan también está en la cuenta) */
+  /* cerrar sesión: sube lo pendiente, sale y limpia este dispositivo (foto, nombre, plan…). Todo sigue en la cuenta y vuelve al entrar */
   function openSignOut(btn) {
     if (btn) btn.disabled = true;
     pushNow().catch(function () {}).then(function () { return GA.signOut(); }).then(function () {
-      try { localStorage.removeItem(SY_USER); localStorage.removeItem(SY_AT); localStorage.removeItem(SY_DIRTY); } catch (err) {}
-      closeSheet(); route(); toast("Cerraste sesión.");
+      forgetDevice();
+      DATA.kiosco = null; DATA.avisos = null; // lo que el equipo veía de más (ocultos, programados) se vuelve a pedir como cualquiera
+      closeSheet(); route(); toast("Cerraste sesión. Tus cosas quedan guardadas en tu cuenta.");
     }).catch(function (err) { if (btn) btn.disabled = false; toast(GA.errorText(err)); });
   }
   /* la primera vez que alguien aprueba una materia sin cuenta, un aviso suave (una sola vez) */
