@@ -1701,6 +1701,7 @@
     var sa = $("#showAll"); if (sa) sa.onclick = function () { S.reveal = "all"; save(); renderFilters(); renderPlanBody(); };
     bindTip(el);
     if (!store.get("gradiente.mapSetup", 0)) setTimeout(function () { openMapSetup(c); }, 450);
+    else if (!tipSeen()) setTimeout(openTip, 600);
     if (!tipSeen()) { var first = $all(".tnode.is-ready", tree).filter(function (n) { var x = c.byCode[n.dataset.node]; return x && x.k !== "lang" && x.s > 0; })[0] || $(".tnode.is-ready", tree); if (first) first.classList.add("is-hint"); }
     enablePan(tree);
     $all("[data-node]", tree).forEach(function (n) {
@@ -1950,6 +1951,7 @@
       setupDlg = null;
       store.set("gradiente.mapSetup", 1);
       S.reveal = pick.rv; save();
+      if (!tipSeen()) setTimeout(openTip, 450); // después de elegir cómo ver el mapa, el tutorial
       d.classList.add("is-out");
       setTimeout(function () { d.remove(); }, 160);
       if (ui.lastRoute === "plan") { renderFilters(); renderPlanBody(); }
@@ -2037,13 +2039,27 @@
   /* ---------------- guía corta (una sola vez) ---------------- */
   function tipSeen() { return store.get("gradiente.tip", 0) >= 1; }
   function tipDone() { if (!tipSeen()) { store.set("gradiente.tip", 1); var t = $("#planTip"); if (t) t.remove(); } }
-  function tipHtml() {
-    if (tipSeen()) return "";
-    return '<div class="tip" id="planTip"><ol>' +
-      '<li><b>1</b><span><strong>Tocá una materia</strong> y abajo elegís si la estás cursando, la regularizaste o la aprobaste.</span></li>' +
-      '<li><b>2</b><span>Se marca su camino: <em class="c-green">verde</em> lo que ya tenés, <em class="c-red">rojo</em> lo que te falta, <em class="c-blue">azul</em> lo que destraba.</span></li>' +
-      '<li><b>3</b><span>Arrastrá para moverte. Si preferís, pasá a <strong>Lista</strong>.</span></li>' +
-      '</ol><button class="btn btn--sm" type="button" data-tip-ok>Entendido</button></div>';
+  // el tutorial ya no va como cartel adentro del plan: sale como modal (openTip)
+  function tipHtml() { return ""; }
+  var tipDlg = null;
+  function openTip() {
+    if (tipSeen() || tipDlg || setupDlg || gradeDlg || !sheet.hidden || ui.lastRoute !== "plan") return;
+    var d = document.createElement("div");
+    d.className = "gdlg msetup tipdlg";
+    d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true"); d.setAttribute("aria-labelledby", "tipT");
+    var step = function (n, t, x) { return '<li><b>' + n + "</b><span><strong>" + t + "</strong>" + x + "</span></li>"; };
+    d.innerHTML = '<div class="gdlg-bg"></div><div class="gdlg-card ms-card">' +
+      '<p class="ms-k">Tu mapa de la carrera</p><h2 class="gdlg-t" id="tipT">Así se usa</h2><ol class="tip-steps">' +
+      step(1, "Tocá una materia", "Abajo elegís si la estás cursando, la regularizaste o la aprobaste.") +
+      step(2, "Mirá su camino", '<em class="c-green">Verde</em> lo que ya tenés, <em class="c-red">rojo</em> lo que te falta y <em class="c-blue">azul</em> lo que destraba.') +
+      step(3, "Movete", "Arrastrá para recorrer el mapa. Si preferís, pasá a Lista.") +
+      '</ol><button type="button" class="btn btn--primary btn--block ms-go" data-tip-ok>Entendido</button></div>';
+    d._back = document.activeElement;
+    document.body.appendChild(d); tipDlg = d;
+    setTimeout(function () { var b = d.querySelector("[data-tip-ok]"); if (b) b.focus({ preventScroll: true }); }, 30);
+    var close = function () { if (!tipDlg) return; tipDlg = null; tipDone(); d.classList.add("is-out"); setTimeout(function () { d.remove(); }, 160); };
+    d.onclick = function (ev) { if (ev.target.closest("[data-tip-ok]") || ev.target.classList.contains("gdlg-bg")) close(); };
+    d.onkeydown = function (ev) { if (ev.key === "Escape") close(); };
   }
   function bindTip(root) { var b = $("[data-tip-ok]", root); if (b) b.onclick = function () { tipDone(); $all(".is-hint").forEach(function (h) { h.classList.remove("is-hint"); }); }; }
 
@@ -3726,7 +3742,7 @@
      ENCABEZADO: perfil (izquierda) y notificaciones (derecha)
      ====================================================================== */
   // variantes del sheet: "modal" centrado (perfil) y "side" lateral (notificaciones). Se sacan solas al cerrarse.
-  var SHEET_VARIANTS = ["sheet--modal", "sheet--side", "sheet--auth", "sheet--av", "sheet--ntl"], pfDirty = false;
+  var SHEET_VARIANTS = ["sheet--modal", "sheet--side", "sheet--auth", "sheet--av", "sheet--ntl", "sheet--welcome"], pfDirty = false;
   function openSheetAs(cls, fn) {
     SHEET_VARIANTS.forEach(function (c) { sheet.classList.remove(c); });
     openSheet(fn);
@@ -4216,6 +4232,38 @@
       closeSheet(); route(); toast("Cerraste sesión. Tus cosas quedan guardadas en tu cuenta.");
     }).catch(function (err) { if (btn) btn.disabled = false; toast(GA.errorText(err)); });
   }
+
+  /* bienvenida: después de la animación de entrada, una sola vez, a quien no tiene sesión */
+  var WC_KEY = "gradiente.welcome";
+  function openWelcome() {
+    if (!GA.enabled || acct() || store.get(WC_KEY, 0) || !sheet.hidden || DEV.temp) return;
+    store.set(WC_KEY, 1); // sale una sola vez, la cierren como la cierren
+    openSheetAs("sheet--modal", function () {
+      return '<div class="wc"><div class="wc-hero"><p class="wc-k">Gradiente · Ingeniería UNLP</p><h2 class="wc-t" id="sheetTitle">Tu carrera,<br><span>en un solo lugar</span></h2>' +
+        "<p>Entrá para tener tu plan en el celu y en la compu, y no perder nada.</p>" +
+        '<button class="iconBtn iconBtn--sm wc-x" type="button" data-close aria-label="Cerrar">' + ic("x") + "</button></div>" +
+        '<div class="wc-btns"><button type="button" class="btn wc-g" data-wc="google">' + googleIcon() + "Entrar con Google</button>" +
+        '<button type="button" class="btn" data-wc="mail">' + ic("mail") + "Entrar o crear cuenta con mail</button>" +
+        '<button type="button" class="wc-skip" data-wc="skip">Seguir sin cuenta</button></div>' +
+        '<p class="wc-foot">Sin cuenta también anda todo, pero tu plan queda solo en este dispositivo. Podés entrar después desde tu perfil.</p></div>';
+    });
+    sheet.classList.add("sheet--welcome");
+    sheetBody.onclick = function (e) {
+      var b = e.target.closest("[data-wc]"); if (!b) return;
+      var a = b.dataset.wc;
+      if (a === "google") { b.disabled = true; GA.signInGoogle().catch(function (err) { b.disabled = false; toast(GA.errorText(err)); }); }
+      else if (a === "mail") openAuthMail("in");
+      else closeSheet();
+    };
+  }
+  function welcomeWhenReady() {
+    if (!GA.enabled || store.get(WC_KEY, 0)) return;
+    var root = document.documentElement;
+    (function wait() {
+      if (root.classList.contains("intro-on")) { setTimeout(wait, 200); return; }
+      Promise.resolve(GA.ready).then(function () { setTimeout(openWelcome, 500); });
+    })();
+  }
   /* la primera vez que alguien aprueba una materia sin cuenta, un aviso suave (una sola vez) */
   function nudgeAccount() {
     if (!GA.enabled || acct() || DEV.temp || store.get("gradiente.nudge", 0)) return;
@@ -4471,6 +4519,7 @@
   if ($("#palBtn")) $("#palBtn").addEventListener("click", openPalettes);
   paintAvatar();
   Promise.all([ensureLinks(), ensureFechas(), ensurePlans(), ensureAvisos()]).then(paintBell).catch(function () {});
+  welcomeWhenReady();
 
   mountDev();
 
