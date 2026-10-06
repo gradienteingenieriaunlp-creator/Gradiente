@@ -25,6 +25,10 @@
     deleteAviso: deleteAviso,
     uploadAvisoImage: uploadAvisoImage,
     removeAvisoImage: removeAvisoImage,
+    // mesita: cualquiera la lee; el equipo agrega, edita y saca
+    kiosco: kiosco,
+    saveKiosco: saveKiosco,
+    deleteKiosco: deleteKiosco,
     inRecovery: function () { return recovery; },
     onChange: function (fn) { listeners.push(fn); },
     signInGoogle: signInGoogle,
@@ -132,6 +136,27 @@
     var path = new Date().toISOString().slice(0, 7) + "/" + Math.random().toString(36).slice(2) + Date.now().toString(36) + ".jpg";
     return need().then(function () { return sb.storage.from("avisos").upload(path, blob, { contentType: "image/jpeg", upsert: false }); }).then(unwrap)
       .then(function () { return sb.storage.from("avisos").getPublicUrl(path).data.publicUrl; });
+  }
+
+  /* ---------- mesita ---------- */
+  var KI_COLS = "id,kind,name,price,category,description,items,label,image,in_stock,active,priority,updated_at";
+  function kiosco() {
+    if (sb && user && role !== "estudiante") return sb.from("kiosco").select(KI_COLS).order("priority").then(unwrap);
+    if (!CFG.url || !CFG.anonKey) return Promise.reject(new Error("sin Supabase"));
+    return fetch(CFG.url + "/rest/v1/kiosco?select=" + KI_COLS + "&order=priority", {
+      headers: { apikey: CFG.anonKey, Authorization: "Bearer " + CFG.anonKey }
+    }).then(function (r) { if (!r.ok) throw new Error("kiosco " + r.status); return r.json(); });
+  }
+  function saveKiosco(k) {
+    var row = { kind: k.kind, name: k.name, price: k.price, category: k.category || null, description: k.description || null, items: k.items || [], label: k.label || null,
+      image: k.image || null, in_stock: k.in_stock !== false, active: k.active !== false, priority: k.priority == null ? 50 : k.priority };
+    return need().then(function () {
+      var q = k.id ? sb.from("kiosco").update(row).eq("id", k.id) : sb.from("kiosco").insert(row);
+      return q.select(KI_COLS).single();
+    }).then(unwrap);
+  }
+  function deleteKiosco(k) {
+    return need().then(function () { return sb.from("kiosco").delete().eq("id", k.id); }).then(unwrap).then(function () { return removeAvisoImage(k.image); });
   }
 
   function need() { return sb ? Promise.resolve(sb) : Promise.reject(new Error("Las cuentas no están disponibles ahora.")); }
