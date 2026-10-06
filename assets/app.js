@@ -3443,6 +3443,75 @@
     };
   }
 
+
+  /* qué se cursa: cuántos alumnos con cuenta cursan (o tienen para rendir) cada materia.
+     Organizadores: solo números (menos de 3 no se muestra). Admins: además, quiénes son. */
+  function openCursan() {
+    var st = { rows: null, act: 0, car: "", mode: "c", who: null, whoOf: null };
+    var info = function (car, code) {
+      var c = DATA.byId[car], x = c && c.byCode[code];
+      if (!x) { var ids = Object.keys(DATA.byId); for (var i = 0; i < ids.length && !x; i++) x = DATA.byId[ids[i]].byCode[code]; }
+      return { n: x ? x.n : code, s: x && x.s != null ? x.s : null };
+    };
+    var list = function () {
+      var key = st.mode === "c" ? "cursando" : "regulares", by = {};
+      (st.rows || []).filter(function (r) { return !st.car || r.career === st.car; }).forEach(function (r) {
+        var v = r[key]; if (!v) return;
+        var o = by[r.code] = by[r.code] || { code: r.code, car: r.career, n: 0, hid: false };
+        if (v < 0) o.hid = true; else o.n += v;
+      });
+      return Object.keys(by).map(function (k) { return by[k]; }).sort(function (a, b) { return (b.n + (b.hid ? 1.5 : 0)) - (a.n + (a.hid ? 1.5 : 0)); });
+    };
+    var view = function () {
+      if (st.who) return whoView();
+      var cars = []; (st.rows || []).forEach(function (r) { if (cars.indexOf(r.career) < 0) cars.push(r.career); });
+      var L = list(), max = L.reduce(function (m, o) { return Math.max(m, o.n || 2); }, 1);
+      var h = mHead("Qué se cursa", isAdmin() ? "Números y quiénes · solo el equipo" : "Solo números · nunca quién", "plan") +
+        '<div class="cu-stats"><div class="is-hero"><b>' + (st.rows ? st.act : "…") + "</b><small>alumnos con cuenta activos en los últimos 6 meses</small></div>" +
+        "<div><b>" + (st.rows ? L.length : "…") + "</b><small>materias con alguien " + (st.mode === "c" ? "cursando" : "para rendir final") + "</small></div></div>";
+      if (cars.length > 1) h += '<div class="chipsRow ed-chips"><button class="chip" type="button" data-cu-car="" aria-pressed="' + !st.car + '">Todas</button>' + cars.map(function (c) { return '<button class="chip" type="button" data-cu-car="' + esc(c) + '" aria-pressed="' + (st.car === c) + '">' + esc((DATA.byId[c] || {}).short || c) + "</button>"; }).join("") + "</div>";
+      h += '<div class="pal-seg cu-seg" role="group" aria-label="Qué contar"><button type="button" data-cu-mode="c" aria-pressed="' + (st.mode === "c") + '">Cursando</button><button type="button" data-cu-mode="r" aria-pressed="' + (st.mode === "r") + '">Para rendir final</button></div>';
+      if (st.rows == null) return h + '<p class="tm-empty">Cargando…</p>';
+      if (!L.length) return h + '<p class="tm-empty">Todavía no hay datos. Se llenan a medida que la gente con cuenta marca sus materias.</p>';
+      h += '<div class="tm2-g cu-list">' + L.map(function (o) {
+        var it = info(o.car, o.code), num = o.n ? o.n + (o.hid ? "+" : "") : "<3";
+        return '<' + (isAdmin() ? 'button type="button" data-cu-who="' + esc(o.code) + '"' : "div") + ' class="cu-row"><span class="ed-t"><b>' + esc(it.n) + "</b><small><span class=\"ed-code\">" + esc(o.code) + "</span>" + (it.s ? semLabel(it.s) : "") + '</small></span><span class="cu-n"><b>' + num + "</b><small>" + (o.n || o.hid ? (st.mode === "c" ? "cursando" : "para final") : "") + "</small></span>" +
+          '<span class="cu-bar"><i style="width:' + ((o.n || 1.5) / max * 100).toFixed(1) + '%"></i></span></' + (isAdmin() ? "button" : "div") + ">";
+      }).join("") + "</div>";
+      return h + '<p class="tm-hint tm2-foot">' + (isAdmin() ? "Tocá una materia para ver quiénes son. " : "Si hay menos de 3 en una materia se muestra «&lt;3» para que no se sepa quién es. ") + "Cuenta solo a quienes tienen cuenta.</p>";
+    };
+    var whoView = function () {
+      var it = info(st.car || (st.rows.filter(function (r) { return r.code === st.whoOf; })[0] || {}).career, st.whoOf), W = st.who === true ? null : st.who;
+      var h = '<div class="dHead"><button class="iconBtn iconBtn--sm" type="button" data-cu-back aria-label="Volver">' + ic("back") + '</button><div><p class="dMeta">' + (st.mode === "c" ? "La están cursando" : "Para rendir final") + '</p><h2 class="h2" id="sheetTitle">' + esc(it.n) + "</h2></div>" +
+        '<button class="iconBtn iconBtn--sm" type="button" data-close aria-label="Cerrar">' + ic("x") + "</button></div>";
+      if (!W) return h + '<p class="tm-empty">Cargando…</p>';
+      if (!W.length) return h + '<p class="tm-empty">No hay nadie.</p>';
+      return h + '<button type="button" class="btn btn--primary cu-copy" data-cu-copy>' + ic("mail") + "Copiar los " + W.length + " mails</button>" +
+        '<div class="tm2-g cu-list">' + W.map(function (p) { return '<div class="tm2-p"><span class="tm2-av">' + esc(String(p.name || p.email).trim().charAt(0).toUpperCase()) + '</span><span class="tm2-who"><strong>' + esc(p.name || p.email.split("@")[0]) + "</strong><small>" + esc(p.email) + "</small></span></div>"; }).join("") + "</div>" +
+        '<p class="tm-hint tm2-foot">Datos personales: usalos solo para armar grupos de estudio o avisar algo de la materia.</p>';
+    };
+    openSheetAs("sheet--modal", view);
+    ensurePlans().then(function () { return Promise.all([GA.rpc("cursadas_resumen"), GA.rpc("cursadas_activos")]); })
+      .then(function (r) { st.rows = r[0] || []; st.act = r[1] || 0; refreshSheet(); })
+      .catch(function (e) { st.rows = []; toast(GA.errorText(e)); refreshSheet(); });
+    sheetBody.onclick = function (e) {
+      var t;
+      if ((t = e.target.closest("[data-cu-car]"))) { st.car = t.dataset.cuCar; refreshSheet(); return; }
+      if ((t = e.target.closest("[data-cu-mode]"))) { st.mode = t.dataset.cuMode; refreshSheet(); return; }
+      if (e.target.closest("[data-cu-back]")) { st.who = null; refreshSheet(); return; }
+      if ((t = e.target.closest("[data-cu-who]"))) {
+        st.whoOf = t.dataset.cuWho; st.who = true; refreshSheet();
+        GA.rpc("cursadas_quienes", { materia: st.whoOf, estado: st.mode }).then(function (l) {
+          st.who = (l || []).filter(function (p) { return !st.car || p.career === st.car; }); refreshSheet();
+        }).catch(function (err) { st.who = null; toast(GA.errorText(err)); refreshSheet(); });
+        return;
+      }
+      if (e.target.closest("[data-cu-copy]") && Array.isArray(st.who)) {
+        var mails = st.who.map(function (p) { return p.email; }).join(", ");
+        (navigator.clipboard ? navigator.clipboard.writeText(mails) : Promise.reject()).then(function () { toast("Copiamos " + st.who.length + " mails."); }, function () { prompt("Copiá los mails:", mails); });
+      }
+    };
+  }
   /* registro de cambios (solo admins): lo llena la base sola, nadie lo puede editar */
   var LOG_T = { avisos: "Avisos", kiosco: "Mesita", links: "Links", faq: "Preguntas", catedras: "Cátedras", user_roles: "Equipo" };
   var LOG_A = { crear: ["agregó", "#34d399"], editar: ["editó", "#60a5fa"], borrar: ["borró", "#fb7185"] };
@@ -3928,6 +3997,7 @@
     var row = function (ac, icon, color, t, sub) { return '<button type="button" data-ac="' + ac + '"><span class="tp-ic" style="--tc:' + color + '">' + ic(icon) + "</span><span>" + t + "<small>" + sub + "</small></span>" + ic("chev") + "</button>"; };
     return '<p class="pf-sec">Lo que maneja el equipo</p><div class="pf2-list tp-list">' +
       row("aviso", "bell", "#fb7185", "Avisos", "Cargar uno nuevo · Notificaciones y calendario") +
+      row("cursan", "plan", "#f472b6", "Qué se cursa", isAdmin() ? "Cuántos y quiénes cursan cada materia" : "Cuántos cursan cada materia") +
       row("mesita", "shop", "#fbbf24", "Mesita", "Precios, stock, kits y productos") +
       row("ed-links", "links", "#60a5fa", "Links útiles", "Agregar, editar u ocultar") +
       row("ed-faq", "chat", "#a78bfa", "Preguntas frecuentes", "Las respuestas del chat de Ayuda") +
@@ -3957,6 +4027,7 @@
     else if (a === "mesita") { closeSheet(); location.hash = "#/mesita"; }
     else if (a === "ed-links") openEditor("links");
     else if (a === "log") openLog();
+    else if (a === "cursan") openCursan();
     else if (a === "ed-faq") openEditor("faq");
     else if (a === "ed-cat") openEditor("cat");
     else if (a === "out") openSignOut(b);
@@ -4138,6 +4209,7 @@
       "<h2 class=\"h3\">Sin cuenta</h2><p>Todo lo que cargás (tu carrera, materias, notas, AFC, nombre, foto, legajo, DNI y mail) queda <b>solo en este navegador</b>. No lo mandamos a ningún lado. Si borrás los datos del navegador, se borra.</p>" +
       "<h2 class=\"h3\">Con cuenta (opcional)</h2><p>Si entrás con Google o con mail, guardamos esos mismos datos en tu cuenta para que los veas en todos tus dispositivos. Los guarda <b>Supabase</b> (servidores en San Pablo, Brasil). <b>Solo vos</b> podés leerlos: ni otras personas ni otros usuarios tienen acceso.</p>" +
       "<p>No los usamos para publicidad, no los vendemos y no los compartimos con nadie. Si entrás con Google, recibimos tu nombre y tu mail, nada más.</p>" +
+      "<h2 class=\"h3\">Grupos de estudio</h2><p>Para armar grupos de estudio y avisos por materia, el equipo de Gradiente ve <b>cuántos</b> alumnos con cuenta cursan o tienen para rendir cada materia. Los organizadores ven solo números. Los admins de Gradiente pueden ver además <b>quiénes</b> son (nombre y mail) y usarlo solo para eso. Si no querés aparecer, usá la página sin cuenta o escribinos.</p>" +
       "<h2 class=\"h3\">Cómo borrarlos</h2><p>Lo que está en este dispositivo lo borrás desde Mi plan (<b>Reiniciar mi progreso</b>) o limpiando los datos del navegador. Para borrar tu cuenta y todo lo guardado en ella, escribinos" + (mail ? ' a <a href="mailto:' + esc(mail) + '">' + esc(mail) + "</a>" : " por nuestras redes") + " y la borramos.</p>" +
       "<h2 class=\"h3\">Tus derechos</h2><p>Por la Ley 25.326 de Protección de Datos Personales podés pedir ver, corregir o borrar tus datos" + (mail ? ' escribiendo a <a href="mailto:' + esc(mail) + '">' + esc(mail) + "</a>" : " escribiéndonos por nuestras redes") + ". La Agencia de Acceso a la Información Pública es el órgano de control de esa ley.</p>" +
       footer() + "</div>";

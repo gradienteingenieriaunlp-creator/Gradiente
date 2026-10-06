@@ -3716,3 +3716,23 @@ h2.nos-t { font-family: var(--display); font-weight: 700; font-size: clamp(30px,
 .lg-row > i { width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; flex: none; }
 .lg-row > span { min-width: 0; }
 .lg-row small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--muted); }
+
+/* ---------- v13 · Qué se cursa ---------- */
+.cu-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+.cu-stats > div { padding: 10px 12px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); display: grid; }
+.cu-stats > .is-hero { color: #fff; background: linear-gradient(135deg, #22357a, #0b1640); border-color: rgba(255, 255, 255, .1); }
+.cu-stats b { font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1; }
+.cu-stats small { font-size: 12px; opacity: .75; line-height: 1.3; margin-top: 2px; }
+.cu-seg { margin: 10px 0 0; }
+.cu-list { margin-top: 10px; }
+.cu-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; width: 100%; padding: 11px 14px; border-top: 1px solid var(--line); text-align: left; }
+.cu-list > .cu-row:first-child { border-top: 0; }
+button.cu-row:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+.cu-row .ed-t small { display: flex; gap: 6px; }
+.cu-row .ed-code { width: auto; }
+.cu-n { text-align: right; }
+.cu-n b { display: block; font-family: var(--display); font-weight: 800; font-size: 24px; line-height: 1; }
+.cu-n small { font-size: 11px; color: var(--muted); }
+.cu-bar { grid-column: 1 / -1; display: flex; height: 6px; border-radius: 999px; overflow: hidden; background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.cu-bar i { background: linear-gradient(90deg, #6366f1, #a5b4fc); border-radius: 999px; }
+.cu-copy { width: 100%; justify-content: center; margin-top: 10px; gap: 6px; }
