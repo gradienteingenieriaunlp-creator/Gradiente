@@ -3558,7 +3558,7 @@
   }
   /* cuentas (solo admins): quién se registró, con qué, cuándo y en qué carrera */
   function openCuentas() {
-    var st = { list: null, q: "" };
+    var st = { list: null, q: "", open: "" };
     var fecha = function (iso) { if (!iso) return "—"; var d = new Date(iso); return d.getDate() + "/" + (d.getMonth() + 1) + "/" + String(d.getFullYear()).slice(2); };
     var ROL = { admin: "Admin", organizador: "Organizador" };
     var shown = function () { var q = norm(st.q); return (st.list || []).filter(function (c) { return !q || norm(c.email + " " + c.name + " " + ((DATA.byId[c.career] || {}).short || "")).indexOf(q) >= 0; }); };
@@ -3566,10 +3566,13 @@
       var L = shown();
       if (st.list == null) return '<p class="tm-empty">Cargando…</p>';
       if (!L.length) return '<p class="tm-empty">No encontramos a nadie con eso.</p>';
-      return '<div class="tm2-g cu-list">' + L.map(function (c) {
-        return '<div class="tm2-p"><span class="tm2-av' + (c.rol === "admin" ? " tm2-av--admin" : "") + '">' + esc(String(c.name || c.email).trim().charAt(0).toUpperCase()) + "</span>" +
-          '<span class="tm2-who"><strong>' + esc(c.name || c.email.split("@")[0]) + (ROL[c.rol] ? ' <em class="ac-role ac-role--' + c.rol + '">' + ROL[c.rol] + "</em>" : "") + "</strong><small>" + esc(c.email) + "</small>" +
-          '<small class="ac-meta">' + esc((DATA.byId[c.career] || {}).short || "Sin carrera") + " · se registró el " + fecha(c.alta) + " · último ingreso " + fecha(c.ultimo) + (c.via === "google" ? " · Google" : " · mail") + "</small></span></div>";
+      // una fila por persona: nombre y mail a la izquierda, carrera y alta a la derecha; tocando se ve el resto
+      return '<div class="ac-list"><div class="ac-head"><span>Persona</span><span>Carrera · alta</span></div>' + L.map(function (c) {
+        var open = st.open === c.email;
+        return '<button type="button" class="ac-row' + (open ? " is-open" : "") + '" data-ac-row="' + esc(c.email) + '" aria-expanded="' + open + '">' +
+          '<span class="ac-l"><b>' + esc(c.name || c.email.split("@")[0]) + (ROL[c.rol] ? ' <em class="ac-role ac-role--' + c.rol + '">' + ROL[c.rol] + "</em>" : "") + "</b><small>" + esc(c.email) + "</small></span>" +
+          '<span class="ac-r"><b>' + esc((DATA.byId[c.career] || {}).short || "—") + "</b><small>" + fecha(c.alta) + "</small></span>" +
+          (open ? '<span class="ac-more">Último ingreso ' + fecha(c.ultimo) + " · entró con " + (c.via === "google" ? "Google" : "mail") + "</span>" : "") + "</button>";
       }).join("") + "</div>";
     };
     var view = function () {
@@ -3583,6 +3586,7 @@
     GA.rpc("admin_cuentas").then(function (l) { st.list = l || []; refreshSheet(); }).catch(function (e) { st.list = []; toast(GA.errorText(e)); refreshSheet(); });
     sheetBody.oninput = function (e) { if (e.target.hasAttribute("data-ac-q")) { st.q = e.target.value; var box = $("[data-ac-rows]", sheetBody); if (box) box.innerHTML = rows(); } };
     sheetBody.onclick = function (e) {
+      var r = e.target.closest("[data-ac-row]"); if (r) { st.open = st.open === r.dataset.acRow ? "" : r.dataset.acRow; var box = $("[data-ac-rows]", sheetBody); if (box) box.innerHTML = rows(); return; }
       if (e.target.closest("[data-ac-back]")) { openStats(); return; }
       if (e.target.closest("[data-ac-copy]")) {
         var mails = shown().map(function (c) { return c.email; }).join(", ");
