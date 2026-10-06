@@ -3921,7 +3921,6 @@
     return (isStaff() ? teamPanel() : "") + '<p class="pf-sec">Tu cuenta <span class="pf2-sync" data-sync-label>' + esc(syncLabel()) + '</span></p><div class="pf2-list">' +
       (viaMail ? '<button type="button" data-ac="pass">' + ic("key") + "<span>Cambiar contraseña</span>" + ic("chev") + "</button>" : "") +
       '<button type="button" data-ac="out">' + ic("back") + "<span>Cerrar sesión</span>" + ic("chev") + "</button>" +
-      '<button type="button" class="ac-danger" data-ac="del">' + ic("x") + "<span>" + (ui.delStep ? "Tocá de nuevo para borrar tu cuenta" : "Borrar mi cuenta") + "<small>" + (ui.delStep ? "Se borran tu plan y tus datos. No se puede deshacer." : "Borra la cuenta y todo lo guardado en ella") + "</small></span></button>" +
       "</div>";
   }
   /* lo que maneja el equipo, todo en un lugar */
@@ -4139,7 +4138,7 @@
       "<h2 class=\"h3\">Sin cuenta</h2><p>Todo lo que cargás (tu carrera, materias, notas, AFC, nombre, foto, legajo, DNI y mail) queda <b>solo en este navegador</b>. No lo mandamos a ningún lado. Si borrás los datos del navegador, se borra.</p>" +
       "<h2 class=\"h3\">Con cuenta (opcional)</h2><p>Si entrás con Google o con mail, guardamos esos mismos datos en tu cuenta para que los veas en todos tus dispositivos. Los guarda <b>Supabase</b> (servidores en San Pablo, Brasil). <b>Solo vos</b> podés leerlos: ni otras personas ni otros usuarios tienen acceso.</p>" +
       "<p>No los usamos para publicidad, no los vendemos y no los compartimos con nadie. Si entrás con Google, recibimos tu nombre y tu mail, nada más.</p>" +
-      "<h2 class=\"h3\">Cómo borrarlos</h2><p>Desde tu perfil: <b>Borrar mi cuenta</b> elimina la cuenta y todo lo guardado en ella, en el momento. <b>Cerrar sesión y borrar de acá</b> limpia este dispositivo.</p>" +
+      "<h2 class=\"h3\">Cómo borrarlos</h2><p>Lo que está en este dispositivo lo borrás desde Mi plan (<b>Reiniciar mi progreso</b>) o limpiando los datos del navegador. Para borrar tu cuenta y todo lo guardado en ella, escribinos" + (mail ? ' a <a href="mailto:' + esc(mail) + '">' + esc(mail) + "</a>" : " por nuestras redes") + " y la borramos.</p>" +
       "<h2 class=\"h3\">Tus derechos</h2><p>Por la Ley 25.326 de Protección de Datos Personales podés pedir ver, corregir o borrar tus datos" + (mail ? ' escribiendo a <a href="mailto:' + esc(mail) + '">' + esc(mail) + "</a>" : " escribiéndonos por nuestras redes") + ". La Agencia de Acceso a la Información Pública es el órgano de control de esa ley.</p>" +
       footer() + "</div>";
   }
