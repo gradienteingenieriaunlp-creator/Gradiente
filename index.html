@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;1,700;1,800&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/app.css?v=65" />
+  <link rel="stylesheet" href="assets/app.css?v=66" />
   <script>
     // links del sitio viejo (/?route=/mesa): se pasan a la ruta nueva
     try { var rt = (location.search.match(/[?&]route=([^&]*)/) || [])[1]; if (rt) { var go = { "/mesa": "mesita", "/consultas": "consultas" }[decodeURIComponent(rt).replace(/\/+$/, "")]; history.replaceState(null, "", location.pathname + "#/" + (go || "recursos")); } } catch (e) {}
@@ -142,6 +142,6 @@
   <script src="config.js?v=15"></script>
   <script src="assets/intro.js?v=4"></script>
   <script src="assets/auth.js?v=8"></script>
-  <script src="assets/app.js?v=57"></script>
+  <script src="assets/app.js?v=58"></script>
 </body>
 </html>
