@@ -3534,7 +3534,7 @@
     var st = { d: null };
     var tile = function (n, l, sub, hero) { return '<div' + (hero ? ' class="is-hero"' : "") + "><b>" + n + "</b><small>" + l + "</small>" + (sub ? '<em class="st-up">' + sub + "</em>" : "") + "</div>"; };
     var view = function () {
-      var h = mHead("Estadísticas", "Solo admins", "plan"), d = st.d;
+      var h = mHead("Estadísticas", "Lo ve el equipo", "plan"), d = st.d;
       if (!d) return h + '<p class="tm-empty">Cargando…</p>';
       var pct = d.cuentas ? Math.round(d.google / d.cuentas * 100) : 0;
       h += '<div class="cu-stats st-tiles">' + tile(d.cuentas, d.cuentas === 1 ? "cuenta creada" : "cuentas creadas", d.nuevas_7d ? "+" + d.nuevas_7d + " esta semana" : "", true) +
@@ -3548,11 +3548,51 @@
       h += '<p class="pf-sec">Por carrera</p>' + (C.length ? '<div class="st-cars">' + C.map(function (c) {
         return '<span><b>' + esc((DATA.byId[c.career] || {}).short || c.career) + '</b><i><u style="width:' + (c.n / cm * 100).toFixed(0) + '%"></u></i><b>' + c.n + "</b></span>";
       }).join("") + "</div>" : '<p class="tm-empty">Todavía nadie eligió carrera.</p>');
-      return h + '<p class="tm-hint tm2-foot">Solo cuentas: quien usa la página sin cuenta no aparece.</p>';
+      return h + (isAdmin() ? '<button type="button" class="btn btn--block cu-copy" data-st-cuentas>' + ic("users") + "Ver las " + d.cuentas + " cuentas</button>" : "") +
+        '<p class="tm-hint tm2-foot">Solo cuentas: quien usa la página sin cuenta no aparece.</p>';
     };
     openSheetAs("sheet--modal", view);
     ensurePlans().then(function () { return GA.rpc("admin_stats"); }).then(function (d) { st.d = d; refreshSheet(); })
       .catch(function (e) { toast(GA.errorText(e)); closeSheet(); });
+    sheetBody.onclick = function (e) { if (e.target.closest("[data-st-cuentas]")) openCuentas(); };
+  }
+  /* cuentas (solo admins): quién se registró, con qué, cuándo y en qué carrera */
+  function openCuentas() {
+    var st = { list: null, q: "", open: "" };
+    var fecha = function (iso) { if (!iso) return "—"; var d = new Date(iso); return d.getDate() + "/" + (d.getMonth() + 1) + "/" + String(d.getFullYear()).slice(2); };
+    var ROL = { admin: "Admin", organizador: "Organizador" };
+    var shown = function () { var q = norm(st.q); return (st.list || []).filter(function (c) { return !q || norm(c.email + " " + c.name + " " + ((DATA.byId[c.career] || {}).short || "")).indexOf(q) >= 0; }); };
+    var rows = function () {
+      var L = shown();
+      if (st.list == null) return '<p class="tm-empty">Cargando…</p>';
+      if (!L.length) return '<p class="tm-empty">No encontramos a nadie con eso.</p>';
+      // una fila por persona: nombre y mail a la izquierda, carrera y alta a la derecha; tocando se ve el resto
+      return '<div class="ac-list"><div class="ac-head"><span>Persona</span><span>Carrera · alta</span></div>' + L.map(function (c) {
+        var open = st.open === c.email;
+        return '<button type="button" class="ac-row' + (open ? " is-open" : "") + '" data-ac-row="' + esc(c.email) + '" aria-expanded="' + open + '">' +
+          '<span class="ac-l"><b>' + esc(c.name || c.email.split("@")[0]) + (ROL[c.rol] ? ' <em class="ac-role ac-role--' + c.rol + '">' + ROL[c.rol] + "</em>" : "") + "</b><small>" + esc(c.email) + "</small></span>" +
+          '<span class="ac-r"><b>' + esc((DATA.byId[c.career] || {}).short || "—") + "</b><small>" + fecha(c.alta) + "</small></span>" +
+          (open ? '<span class="ac-more">Entró con ' + (c.via === "google" ? "Google" : "mail") + "</span>" : "") + "</button>";
+      }).join("") + "</div>";
+    };
+    var view = function () {
+      return '<div class="dHead"><button class="iconBtn iconBtn--sm" type="button" data-ac-back aria-label="Volver">' + ic("back") + '</button><div><p class="dMeta">Solo admins</p><h2 class="h2" id="sheetTitle">Cuentas' + (st.list ? " · " + st.list.length : "") + "</h2></div>" +
+        '<button class="iconBtn iconBtn--sm" type="button" data-close aria-label="Cerrar">' + ic("x") + "</button></div>" +
+        '<div class="ed-top"><label class="ob-srch">' + ic("search") + '<span class="sr">Buscar</span><input type="search" data-ac-q value="' + esc(st.q) + '" placeholder="Nombre, mail o carrera" autocomplete="off"></label>' +
+        '<button type="button" class="btn btn--sm" data-ac-copy>' + ic("mail") + "Copiar</button></div><div data-ac-rows>" + rows() + "</div>" +
+        '<p class="tm-hint tm2-foot">Datos personales: usalos solo para cosas de Gradiente.</p>';
+    };
+    openSheetAs("sheet--modal", view);
+    GA.rpc("admin_cuentas").then(function (l) { st.list = l || []; refreshSheet(); }).catch(function (e) { st.list = []; toast(GA.errorText(e)); refreshSheet(); });
+    sheetBody.oninput = function (e) { if (e.target.hasAttribute("data-ac-q")) { st.q = e.target.value; var box = $("[data-ac-rows]", sheetBody); if (box) box.innerHTML = rows(); } };
+    sheetBody.onclick = function (e) {
+      var r = e.target.closest("[data-ac-row]"); if (r) { st.open = st.open === r.dataset.acRow ? "" : r.dataset.acRow; var box = $("[data-ac-rows]", sheetBody); if (box) box.innerHTML = rows(); return; }
+      if (e.target.closest("[data-ac-back]")) { openStats(); return; }
+      if (e.target.closest("[data-ac-copy]")) {
+        var mails = shown().map(function (c) { return c.email; }).join(", ");
+        (navigator.clipboard ? navigator.clipboard.writeText(mails) : Promise.reject()).then(function () { toast("Copiamos " + shown().length + " mails."); }, function () { prompt("Copiá los mails:", mails); });
+      }
+    };
   }
   /* registro de cambios (solo admins): lo llena la base sola, nadie lo puede editar */
   var LOG_T = { avisos: "Avisos", kiosco: "Mesita", links: "Links", faq: "Preguntas", catedras: "Cátedras", user_roles: "Equipo" };
@@ -4045,7 +4085,8 @@
       row("ed-faq", "chat", "#a78bfa", "Preguntas frecuentes", "Las respuestas del chat de Ayuda") +
       row("ed-cat", "building", "#34d399", "Cátedras", "Página y mail de cada materia") +
       row("team", "users", "#818cf8", "Equipo", GA.role() === "admin" ? "Quién es organizador o admin" : "Quiénes están en el equipo") +
-      (isAdmin() ? row("stats", "plan", "#22d3ee", "Estadísticas", "Cuentas, activos y carreras · solo admins") + row("log", "clock", "#94a3b8", "Registro de cambios", "Quién cambió qué y cuándo · solo admins") : "") + "</div>" +
+      row("stats", "plan", "#22d3ee", "Estadísticas", "Cuentas, activos y carreras") +
+      (isAdmin() ? row("log", "clock", "#94a3b8", "Registro de cambios", "Quién cambió qué y cuándo · solo admins") : "") + "</div>" +
       (isAdmin() ? "" : '<p class="tm-hint tm2-foot">Podés agregar, editar y ocultar. Borrar para siempre es de los admins.</p>');
   }
   function helpRows() {
@@ -4286,6 +4327,7 @@
       "<h2 class=\"h3\">Con cuenta (opcional)</h2><p>Si entrás con Google o con mail, guardamos esos mismos datos en tu cuenta para que los veas en todos tus dispositivos. Los guarda <b>Supabase</b> (servidores en San Pablo, Brasil). <b>Solo vos</b> podés leerlos: ni otras personas ni otros usuarios tienen acceso.</p>" +
       "<p>No los usamos para publicidad, no los vendemos y no los compartimos con nadie. Si entrás con Google, recibimos tu nombre y tu mail, nada más.</p>" +
       "<h2 class=\"h3\">Grupos de estudio</h2><p>Para armar grupos de estudio y avisos por materia, el equipo de Gradiente ve <b>cuántos</b> alumnos con cuenta cursan o tienen para rendir cada materia. Los organizadores ven solo números. Los admins de Gradiente pueden ver además <b>quiénes</b> son (nombre y mail) y usarlo solo para eso. Si no querés aparecer, usá la página sin cuenta o escribinos.</p>" +
+      "<p>Los admins de Gradiente también ven la lista de cuentas (nombre, mail, carrera y fechas de alta y último ingreso), solo para administrar la página.</p>" +
       "<h2 class=\"h3\">Cómo borrarlos</h2><p>Lo que está en este dispositivo lo borrás desde Mi plan (<b>Reiniciar mi progreso</b>) o limpiando los datos del navegador. Para borrar tu cuenta y todo lo guardado en ella, escribinos" + (mail ? ' a <a href="mailto:' + esc(mail) + '">' + esc(mail) + "</a>" : " por nuestras redes") + " y la borramos.</p>" +
       "<h2 class=\"h3\">Tus derechos</h2><p>Por la Ley 25.326 de Protección de Datos Personales podés pedir ver, corregir o borrar tus datos" + (mail ? ' escribiendo a <a href="mailto:' + esc(mail) + '">' + esc(mail) + "</a>" : " escribiéndonos por nuestras redes") + ". La Agencia de Acceso a la Información Pública es el órgano de control de esa ley.</p>" +
       footer() + "</div>";

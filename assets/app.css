@@ -3788,3 +3788,19 @@ button.cu-row:hover { background: color-mix(in srgb, var(--ink) 4%, transparent)
 .tip-steps b { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: 22px; color: #fff; background: var(--accent); }
 .tip-steps strong { display: block; font-size: 15.5px; }
 .tip-steps span { font-size: 13.5px; line-height: 1.4; color: var(--ink-2); }
+.ac-meta { display: block; margin-top: 2px; font-size: 11.5px !important; color: var(--muted); white-space: normal !important; line-height: 1.35; }
+.cu-list .tm2-who strong .ac-role { margin-left: 6px; vertical-align: 1px; }
+/* cuentas en lista compacta */
+.ac-list { margin-top: 10px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); overflow: hidden; }
+.ac-head { display: flex; justify-content: space-between; padding: 8px 12px; font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); }
+.ac-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; width: 100%; padding: 8px 12px; text-align: left; border-top: 1px solid var(--line); }
+.ac-head + .ac-row { border-top: 0; }
+.ac-row:hover, .ac-row.is-open { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+.ac-l, .ac-r { display: grid; min-width: 0; }
+.ac-l b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-l small { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-r { text-align: right; }
+.ac-r b { font-size: 13px; }
+.ac-r small { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.ac-l .ac-role { margin-left: 4px; font-size: 9.5px; padding: 1px 6px; vertical-align: 1px; }
+.ac-more { grid-column: 1 / -1; margin-top: 4px; font-size: 12px; color: var(--ink-2); }
